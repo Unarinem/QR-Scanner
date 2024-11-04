@@ -37,14 +37,13 @@
 <div id="result">Initializing QR code scanning...</div>
 
 <script>
-  // Set your Google Apps Script URL here
-  const GOOGLE_APPS_SCRIPT_URL = 'YOUR_GOOGLE_APPS_SCRIPT_URL'; // Replace with your Apps Script URL
+  // Set the Google Apps Script URL here
+  const GOOGLE_APPS_SCRIPT_URL = 'https://script.google.com/macros/s/YOUR_SCRIPT_ID/exec'; // Replace with your Apps Script URL
   const video = document.getElementById("qr-video");
   const canvas = document.getElementById("qr-canvas");
   const canvasContext = canvas.getContext("2d");
   const resultElement = document.getElementById("result");
 
-  // Function to extract ticket number from the QR code text
   function extractTicketNumber(decodedText) {
     try {
       const url = new URL(decodedText);
@@ -54,7 +53,6 @@
     }
   }
 
-  // Function to validate the ticket by sending a request to the Google Apps Script
   async function validateTicket(ticketNumber) {
     const validationUrl = `${GOOGLE_APPS_SCRIPT_URL}?ticketNumber=${encodeURIComponent(ticketNumber)}`;
     console.log("Sending validation request to:", validationUrl);
@@ -76,7 +74,6 @@
     }
   }
 
-  // Function to start the QR scanner
   function startQrScanner() {
     navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } })
       .then(stream => {
@@ -110,7 +107,6 @@
       });
   }
 
-  // Function to stop the video stream after scanning
   function stopVideoStream() {
     const stream = video.srcObject;
     if (stream) {
@@ -120,10 +116,10 @@
     }
   }
 
-  // Initialize the QR scanner when the page loads
   window.addEventListener('load', startQrScanner);
 </script>
 
 </body>
 </html>
+
 
