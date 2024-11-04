@@ -3,7 +3,8 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Basic Camera Feed Test</title>
+  <title>QR Code Ticket Validator</title>
+  <script src="https://unpkg.com/html5-qrcode/minified/html5-qrcode.min.js"></script>
   <style>
     body {
       font-family: Arial, sans-serif;
@@ -14,45 +15,72 @@
       height: 100vh;
       margin: 0;
       text-align: center;
+      background-color: #f0f0f0;
     }
-    #camera-feed {
+    #qr-reader {
       width: 400px;
       height: 400px;
+      margin-top: 20px;
       background-color: #000;
+      position: relative;
     }
-    #status {
+    #result {
       margin-top: 20px;
       font-size: 18px;
       font-weight: bold;
-      color: red;
+      color: #333;
     }
   </style>
 </head>
 <body>
 
-<h1>Camera Feed Test</h1>
-<p>Testing direct camera access without any libraries.</p>
+<h1>QR Code Ticket Validator</h1>
+<p>Align the QR code within the box to validate the ticket.</p>
 
-<video id="camera-feed" autoplay playsinline></video>
-<div id="status">Initializing camera...</div>
+<div id="qr-reader"></div>
+<div id="result">Initializing camera...</div>
 
 <script>
-  async function initializeCamera() {
-    const videoElement = document.getElementById('camera-feed');
-    const statusElement = document.getElementById('status');
+  const GOOGLE_APPS_SCRIPT_URL = 'https://script.google.com/macros/s/YOUR_DEPLOYMENT_ID/exec';
 
+  function extractTicketNumber(decodedText) {
     try {
-      // Direct camera access without specific constraints
-      const stream = await navigator.mediaDevices.getUserMedia({ video: true });
-      videoElement.srcObject = stream;
-      statusElement.innerText = "Camera feed is displaying.";
+      const url = new URL(decodedText);
+      const ticketNumberParam = url.searchParams.get("ticketNumber");
+      return ticketNumberParam ? ticketNumberParam : decodedText;
     } catch (error) {
-      console.error("Camera access error:", error);
-      statusElement.innerText = "Error: Unable to access camera. Check permissions or compatibility.";
+      return decodedText; // Use decodedText directly if it’s not a URL
     }
   }
 
-  window.addEventListener("load", initializeCamera);
+  function onScanSuccess(decodedText) {
+    const ticketNumber = extractTicketNumber(decodedText);
+    document.getElementById("result").innerText = `Scanned: ${ticketNumber}`;
+
+    const validationUrl = `${GOOGLE_APPS_SCRIPT_URL}?ticketNumber=${encodeURIComponent(ticketNumber)}`;
+    fetch(validationUrl)
+      .then(response => response.text())
+      .then(data => document.getElementById("result").innerText = `Validation Result: ${data}`)
+      .catch(error => document.getElementById("result").innerText = "Error validating ticket");
+  }
+
+  function initializeScanner() {
+    const html5QrCode = new Html5Qrcode("qr-reader");
+
+    html5QrCode.start(
+      { facingMode: { exact: "environment" } },  // Requests the back camera
+      { fps: 10, qrbox: { width: 300, height: 300 } },  // QR box to improve accuracy
+      onScanSuccess,
+      errorMessage => {
+        console.warn(`QR Code scan error: ${errorMessage}`);
+      }
+    ).catch(err => {
+      console.error("Camera initialization error:", err);
+      document.getElementById("result").innerText = "Error: Unable to access camera. Check permissions.";
+    });
+  }
+
+  window.addEventListener("load", initializeScanner);
 </script>
 
 </body>
