@@ -66,24 +66,27 @@
     console.warn("Scanning attempt with no result:", error);
   }
 
-  async function initializeQrScanner() {
-    try {
-      const html5QrCode = new Html5Qrcode("qr-reader");
-      await html5QrCode.start(
-        { facingMode: "environment" },
-        {
-          fps: 10,
-          qrbox: { width: 250, height: 250 },
-          rememberLastUsedCamera: true,
-        },
-        onScanSuccess,
-        onScanFailure
-      );
+  function initializeQrScanner() {
+    const html5QrCode = new Html5Qrcode("qr-reader");
+
+    // Start the QR scanner without directly configuring video
+    html5QrCode.start(
+      { facingMode: "environment" },
+      {
+        fps: 10,
+        qrbox: { width: 250, height: 250 },
+        rememberLastUsedCamera: true,
+      },
+      onScanSuccess,
+      onScanFailure
+    )
+    .then(() => {
       document.getElementById("result").innerText = "QR code scanner initialized. Ready to scan!";
-    } catch (error) {
+    })
+    .catch(error => {
       console.error("QR scanner initialization error:", error);
       document.getElementById("result").innerText = "Error: Unable to access camera or initialize scanner. Check permissions.";
-    }
+    });
   }
 
   window.addEventListener('load', initializeQrScanner);
