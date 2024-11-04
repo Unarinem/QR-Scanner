@@ -41,7 +41,7 @@
 <div id="result">Initializing camera...</div>
 
 <script>
-  const GOOGLE_APPS_SCRIPT_URL = 'https://script.google.com/macros/s/YOUR_DEPLOYMENT_ID/exec';
+  const GOOGLE_APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxL9RcH0b-6QhCgGpHEfH9fQ7TYrXJf6TJKrSEiSeS5UB3A4kMRQJKIW7uDWxcXmtAu/exec';
 
   function extractTicketNumber(decodedText) {
     try {
@@ -49,7 +49,7 @@
       const ticketNumberParam = url.searchParams.get("ticketNumber");
       return ticketNumberParam ? ticketNumberParam : decodedText;
     } catch (error) {
-      return decodedText; // Use decodedText directly if it’s not a URL
+      return decodedText;
     }
   }
 
@@ -68,19 +68,26 @@
     const html5QrCode = new Html5Qrcode("qr-reader");
 
     html5QrCode.start(
-      { facingMode: { exact: "environment" } },  // Requests the back camera
-      { fps: 10, qrbox: { width: 300, height: 300 } },  // QR box to improve accuracy
+      { facingMode: "environment" },  // Try the back camera
+      { fps: 10, qrbox: { width: 300, height: 300 } },
       onScanSuccess,
       errorMessage => {
         console.warn(`QR Code scan error: ${errorMessage}`);
       }
     ).catch(err => {
       console.error("Camera initialization error:", err);
-      document.getElementById("result").innerText = "Error: Unable to access camera. Check permissions.";
+      document.getElementById("result").innerText = "Error: Unable to access camera. Please check permissions and refresh.";
     });
   }
 
-  window.addEventListener("load", initializeScanner);
+  // Initialize camera on load, with error handling
+  window.addEventListener("load", () => {
+    if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
+      initializeScanner();
+    } else {
+      document.getElementById("result").innerText = "Error: Camera access is not supported on this device.";
+    }
+  });
 </script>
 
 </body>
