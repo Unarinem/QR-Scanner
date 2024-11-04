@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>QR Code Ticket Validator</title>
+  <title>QR Code Scanner Test</title>
   <script src="https://unpkg.com/html5-qrcode/minified/html5-qrcode.min.js"></script>
   <style>
     body {
@@ -32,47 +32,15 @@
 </head>
 <body>
 
-<h1>QR Code Ticket Validator</h1>
-<p>Scan the QR code to validate the ticket.</p>
+<h1>QR Code Scanner Test</h1>
+<p>This is a test to verify QR code scanning functionality.</p>
 
 <div id="qr-reader"></div>
-<div id="result">Initializing camera...</div>
+<div id="result">Initializing camera and scanner...</div>
 
 <script>
-  // Replace with your Google Apps Script Web App URL
-  const GOOGLE_APPS_SCRIPT_URL = 'https://script.google.com/macros/s/YOUR_DEPLOYMENT_ID/exec';
-
-  function extractTicketNumber(decodedText) {
-    try {
-      const url = new URL(decodedText);
-      const ticketNumberParam = url.searchParams.get("ticketNumber");
-      if (ticketNumberParam) return ticketNumberParam;
-    } catch (error) {
-      // If it's not a URL, use the decoded text as the ticket number directly
-    }
-    return decodedText;
-  }
-
   function onScanSuccess(decodedText) {
     document.getElementById("result").innerText = `Scanned: ${decodedText}`;
-
-    const ticketNumber = extractTicketNumber(decodedText);
-    if (!ticketNumber) {
-      document.getElementById("result").innerText = "Invalid QR code format. No ticket number found.";
-      return;
-    }
-
-    const validationUrl = `${GOOGLE_APPS_SCRIPT_URL}?ticketNumber=${encodeURIComponent(ticketNumber)}`;
-
-    fetch(validationUrl)
-      .then(response => response.text())
-      .then(data => {
-        document.getElementById("result").innerText = `Validation Result: ${data}`;
-      })
-      .catch(error => {
-        console.error("Error:", error);
-        document.getElementById("result").innerText = "Error validating ticket";
-      });
   }
 
   function onScanFailure(error) {
