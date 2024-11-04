@@ -37,29 +37,31 @@
 <div id="result">Waiting for scan...</div>
 
 <script>
+  // Replace with your Google Apps Script URL
   const GOOGLE_APPS_SCRIPT_URL = 'https://script.google.com/macros/s/YOUR_DEPLOYMENT_ID/exec';
 
+  // Function to extract the ticket number from the QR code
   function extractTicketNumber(decodedText) {
     try {
-      // Attempt to treat decodedText as a URL to extract ticketNumber
+      // Try to parse decodedText as a URL to get ticketNumber parameter
       const url = new URL(decodedText);
       const ticketNumberParam = url.searchParams.get("ticketNumber");
 
       if (ticketNumberParam) {
-        return ticketNumberParam; // Return ticket number if present in URL parameter
+        return ticketNumberParam;
       }
     } catch (error) {
-      // If decodedText is not a URL, treat it as a plain ticket number
+      // Not a URL, proceed to use the decodedText as the ticket number
     }
 
-    return decodedText; // Return decodedText directly if it's not a URL
+    return decodedText;
   }
 
   function onScanSuccess(decodedText, decodedResult) {
     // Display the scanned content for debugging
-    document.getElementById("result").innerText = `Scanned content: ${decodedText}`;
+    document.getElementById("result").innerText = `Scanned: ${decodedText}`;
 
-    // Extract the ticket number from the scanned content
+    // Extract the ticket number from the QR code content
     const ticketNumber = extractTicketNumber(decodedText);
 
     if (!ticketNumber) {
@@ -67,18 +69,14 @@
       return;
     }
 
-    // Log the extracted ticket number for debugging
-    console.log("Extracted ticket number:", ticketNumber);
-    document.getElementById("result").innerText = `Extracted ticket number: ${ticketNumber}`;
-
-    // Construct validation URL with the ticket number
+    // Construct the validation URL with the ticket number
     const validationUrl = `${GOOGLE_APPS_SCRIPT_URL}?ticketNumber=${encodeURIComponent(ticketNumber)}`;
 
-    // Send GET request to the Google Apps Script for validation
+    // Make a GET request to validate the ticket
     fetch(validationUrl)
       .then(response => response.text())
       .then(data => {
-        // Display the validation result in the result div
+        // Display the validation result
         document.getElementById("result").innerText = `Validation Result: ${data}`;
       })
       .catch(error => {
@@ -88,13 +86,12 @@
   }
 
   function onScanFailure(error) {
-    // Log scan failure for debugging
     console.warn(`QR code scan error: ${error}`);
   }
 
-  // Initialize the HTML5 QR code scanner
-  let html5QrcodeScanner = new Html5QrcodeScanner(
-    "qr-reader", 
+  // Initialize the QR code scanner
+  const html5QrcodeScanner = new Html5QrcodeScanner(
+    "qr-reader",
     { fps: 10, qrbox: { width: 250, height: 250 } },
     false
   );
