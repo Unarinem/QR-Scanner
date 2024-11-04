@@ -3,8 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>QR Code Ticket Validator</title>
-  <script src="https://unpkg.com/html5-qrcode/minified/html5-qrcode.min.js"></script>
+  <title>Camera Test</title>
   <style>
     body {
       display: flex;
@@ -17,10 +16,10 @@
       font-family: Arial, sans-serif;
       background-color: #f0f0f0;
     }
-    #qr-reader {
+    #video {
       width: 100%;
       max-width: 400px;
-      margin-top: 20px;
+      background-color: #000;
     }
     #result {
       margin-top: 20px;
@@ -32,73 +31,25 @@
 </head>
 <body>
 
-<h1>QR Code Ticket Validator</h1>
-<div id="qr-reader"></div>
-<div id="result">Initializing QR code scanning...</div>
+<h1>Camera Test</h1>
+<video id="video" autoplay></video>
+<div id="result">Attempting to access camera...</div>
 
 <script>
-  const GOOGLE_APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxL9RcH0b-6QhCgGpHEfH9fQ7TYrXJf6TJKrSEiSeS5UB3A4kMRQJKIW7uDWxcXmtAu/exec';
+  async function testCameraAccess() {
+    const videoElement = document.getElementById("video");
 
-  function extractTicketNumber(decodedText) {
     try {
-      const url = new URL(decodedText);
-      return url.searchParams.get("ticketNumber") || decodedText;
-    } catch {
-      return decodedText; // Use the decoded text directly if it's not a URL
-    }
-  }
-
-  function onScanSuccess(decodedText) {
-    const ticketNumber = extractTicketNumber(decodedText);
-    document.getElementById("result").innerText = `Scanned: ${ticketNumber}`;
-
-    const validationUrl = `${GOOGLE_APPS_SCRIPT_URL}?ticketNumber=${encodeURIComponent(ticketNumber)}`;
-    fetch(validationUrl)
-      .then(response => response.text())
-      .then(data => document.getElementById("result").innerText = `Validation Result: ${data}`)
-      .catch(error => {
-        console.error("Validation error:", error);
-        document.getElementById("result").innerText = "Error validating ticket";
-      });
-  }
-
-  function onScanFailure(error) {
-    console.warn("Scanning attempt with no result:", error);
-  }
-
-  function initializeQrReader() {
-    const html5QrCode = new Html5Qrcode("qr-reader");
-
-    html5QrCode.start(
-      { facingMode: "environment" },
-      {
-        fps: 10,
-        qrbox: { width: 250, height: 250 },
-        rememberLastUsedCamera: true,
-      },
-      onScanSuccess,
-      onScanFailure
-    )
-    .then(() => {
-      document.getElementById("result").innerText = "Camera and QR code scanning initialized successfully!";
-    })
-    .catch(error => {
+      const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } });
+      videoElement.srcObject = stream;
+      document.getElementById("result").innerText = "Camera access granted!";
+    } catch (error) {
       console.error("Camera access error:", error);
-      document.getElementById("result").innerText = `Error: Unable to access camera. ${error.message || error}`;
-    });
+      document.getElementById("result").innerText = "Error: Unable to access camera. Check permissions.";
+    }
   }
 
-  // Debugging: Check if camera permissions are allowed or not
-  navigator.permissions.query({ name: 'camera' }).then(permissionStatus => {
-    console.log('Camera permission status:', permissionStatus.state);
-    if (permissionStatus.state === 'denied') {
-      document.getElementById("result").innerText = "Camera access is denied. Please allow camera permissions in your browser settings.";
-    }
-  }).catch(error => {
-    console.error("Permissions API not supported or query failed:", error);
-  });
-
-  window.addEventListener('load', initializeQrReader);
+  window.addEventListener('load', testCameraAccess);
 </script>
 
 </body>
