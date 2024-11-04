@@ -3,105 +3,29 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>QR Code Ticket Validator</title>
-  <script src="https://unpkg.com/html5-qrcode/minified/html5-qrcode.min.js"></script>
-  <style>
-    body {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      height: 100vh;
-      margin: 0;
-      text-align: center;
-      font-family: Arial, sans-serif;
-      background-color: #f0f0f0;
-    }
-    #qr-reader {
-      width: 100%;
-      max-width: 400px;
-      background-color: #000;
-    }
-    #result {
-      margin-top: 20px;
-      font-size: 18px;
-      font-weight: bold;
-      color: #333;
-    }
-  </style>
+  <title>Camera Test</title>
 </head>
 <body>
 
-<h1>QR Code Ticket Validator</h1>
-<div id="qr-reader"></div>
-<div id="result">Initializing QR code scanning...</div>
+<h1>Camera Test</h1>
+<video id="camera-test" autoplay style="width: 100%; max-width: 400px;"></video>
+<div id="error-message" style="color: red; font-weight: bold;"></div>
 
 <script>
-  const GOOGLE_APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxL9RcH0b-6QhCgGpHEfH9fQ7TYrXJf6TJKrSEiSeS5UB3A4kMRQJKIW7uDWxcXmtAu/exec';
+  const videoElement = document.getElementById("camera-test");
+  const errorMessage = document.getElementById("error-message");
 
-  function extractTicketNumber(decodedText) {
+  async function testCameraAccess() {
     try {
-      const url = new URL(decodedText);
-      return url.searchParams.get("ticketNumber") || decodedText;
-    } catch {
-      return decodedText;
+      const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } });
+      videoElement.srcObject = stream;
+    } catch (error) {
+      console.error("Camera access error:", error);
+      errorMessage.innerText = "Error: Unable to access camera. Please check permissions and device settings.";
     }
   }
 
-  function onScanSuccess(decodedText) {
-    const ticketNumber = extractTicketNumber(decodedText);
-    document.getElementById("result").innerText = `Scanned: ${ticketNumber}`;
-
-    const validationUrl = `${GOOGLE_APPS_SCRIPT_URL}?ticketNumber=${encodeURIComponent(ticketNumber)}`;
-    fetch(validationUrl)
-      .then(response => response.text())
-      .then(data => document.getElementById("result").innerText = `Validation Result: ${data}`)
-      .catch(error => {
-        console.error("Validation error:", error);
-        document.getElementById("result").innerText = "Error validating ticket";
-      });
-  }
-
-  function onScanFailure(error) {
-    console.warn("Scanning attempt with no result:", error);
-  }
-
-  function initializeQrScanner() {
-    const html5QrCode = new Html5Qrcode("qr-reader");
-
-    // Attempt to get the list of available cameras and use the first one as a fallback
-    Html5Qrcode.getCameras()
-      .then(devices => {
-        if (devices && devices.length) {
-          const cameraId = devices[0].id; // Use first camera by default
-
-          html5QrCode.start(
-            { deviceId: { exact: cameraId } },
-            {
-              fps: 10,
-              qrbox: { width: 250, height: 250 },
-              rememberLastUsedCamera: true,
-            },
-            onScanSuccess,
-            onScanFailure
-          ).then(() => {
-            document.getElementById("result").innerText = "QR code scanner initialized. Ready to scan!";
-          })
-          .catch(error => {
-            console.error("QR scanner initialization error:", error);
-            document.getElementById("result").innerText = "Error: Unable to access camera or initialize scanner. Check permissions.";
-          });
-        } else {
-          document.getElementById("result").innerText = "No camera device found.";
-        }
-      })
-      .catch(error => {
-        console.error("Camera access error:", error);
-        document.getElementById("result").innerText = "Error accessing cameras. Check permissions.";
-      });
-  }
-
-  window.addEventListener('load', initializeQrScanner);
+  window.addEventListener('load', testCameraAccess);
 </script>
 
 </body>
