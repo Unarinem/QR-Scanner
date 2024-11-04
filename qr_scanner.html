@@ -3,7 +3,8 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Direct Camera Access Test</title>
+  <title>QR Code Ticket Validator</title>
+  <script src="https://unpkg.com/html5-qrcode/minified/html5-qrcode.min.js"></script>
   <style>
     body {
       display: flex;
@@ -32,34 +33,61 @@
 </head>
 <body>
 
-<h1>Direct Camera Access Test</h1>
+<h1>QR Code Ticket Validator</h1>
 <video id="camera-preview" autoplay></video>
-<div id="result">Initializing camera...</div>
+<div id="result">Initializing QR code scanning...</div>
 
 <script>
-  async function startCamera() {
-    const videoElement = document.getElementById('camera-preview');
-    const resultElement = document.getElementById('result');
+  const GOOGLE_APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxL9RcH0b-6QhCgGpHEfH9fQ7TYrXJf6TJKrSEiSeS5UB3A4kMRQJKIW7uDWxcXmtAu/exec';
 
+  // Extract ticket number from decoded QR code data
+  function extractTicketNumber(decodedText) {
     try {
-      // Attempt to get camera stream
-      const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } });
-      videoElement.srcObject = stream;
-      resultElement.innerText = 'Camera feed displayed successfully!';
-    } catch (error) {
-      console.error("Camera access error:", error);
-      if (error.name === 'NotAllowedError') {
-        resultElement.innerText = 'Camera access denied. Please allow camera access and refresh.';
-      } else if (error.name === 'NotFoundError') {
-        resultElement.innerText = 'No camera found. Please ensure your device has a working camera.';
-      } else {
-        resultElement.innerText = `Camera error: ${error.message}`;
-      }
+      const url = new URL(decodedText);
+      return url.searchParams.get("ticketNumber") || decodedText;
+    } catch {
+      return decodedText;
     }
   }
 
-  // Run the camera access test on page load
-  window.addEventListener('load', startCamera);
+  // Handle QR code detection
+  function onScanSuccess(decodedText) {
+    const ticketNumber = extractTicketNumber(decodedText);
+    document.getElementById("result").innerText = `Scanned: ${ticketNumber}`;
+
+    // Validation request to Google Apps Script
+    const validationUrl = `${GOOGLE_APPS_SCRIPT_URL}?ticketNumber=${encodeURIComponent(ticketNumber)}`;
+    fetch(validationUrl)
+      .then(response => response.text())
+      .then(data => {
+        document.getElementById("result").innerText = `Validation Result: ${data}`;
+      })
+      .catch(error => {
+        console.error("Validation error:", error);
+        document.getElementById("result").innerText = "Error validating ticket";
+      });
+  }
+
+  async function startCameraAndScanner() {
+    const videoElement = document.getElementById('camera-preview');
+    try {
+      // Start camera feed
+      const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } });
+      videoElement.srcObject = stream;
+
+      // Initialize QR code scanner
+      const html5QrCode = new Html5Qrcode("camera-preview");
+      html5QrCode.scanFile(videoElement, true, onScanSuccess)
+        .catch(err => console.error("QR scanning error:", err));
+
+    } catch (error) {
+      console.error("Camera initialization error:", error);
+      document.getElementById("result").innerText = "Error: Unable to initialize camera. Please check permissions.";
+    }
+  }
+
+  // Run camera and QR scanner on page load
+  window.addEventListener('load', startCameraAndScanner);
 </script>
 
 </body>
