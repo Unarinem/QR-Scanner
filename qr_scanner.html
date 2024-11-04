@@ -17,7 +17,7 @@
       font-family: Arial, sans-serif;
       background-color: #f0f0f0;
     }
-    #video {
+    #qr-reader {
       width: 100%;
       max-width: 400px;
       background-color: #000;
@@ -33,7 +33,7 @@
 <body>
 
 <h1>QR Code Ticket Validator</h1>
-<video id="video" autoplay></video>
+<div id="qr-reader"></div>
 <div id="result">Initializing QR code scanning...</div>
 
 <script>
@@ -44,7 +44,7 @@
       const url = new URL(decodedText);
       return url.searchParams.get("ticketNumber") || decodedText;
     } catch {
-      return decodedText; // Use the decoded text directly if it's not a URL
+      return decodedText;
     }
   }
 
@@ -66,17 +66,9 @@
     console.warn("Scanning attempt with no result:", error);
   }
 
-  async function initializeCameraAndScanner() {
-    const videoElement = document.getElementById("video");
-
+  async function initializeQrScanner() {
     try {
-      // Step 1: Get camera access
-      const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } });
-      videoElement.srcObject = stream;
-      document.getElementById("result").innerText = "Camera feed is active. Initializing QR scanner...";
-
-      // Step 2: Initialize QR scanner after camera feed starts
-      const html5QrCode = new Html5Qrcode("video");
+      const html5QrCode = new Html5Qrcode("qr-reader");
       await html5QrCode.start(
         { facingMode: "environment" },
         {
@@ -89,12 +81,12 @@
       );
       document.getElementById("result").innerText = "QR code scanner initialized. Ready to scan!";
     } catch (error) {
-      console.error("Camera or QR scanner initialization error:", error);
+      console.error("QR scanner initialization error:", error);
       document.getElementById("result").innerText = "Error: Unable to access camera or initialize scanner. Check permissions.";
     }
   }
 
-  window.addEventListener('load', initializeCameraAndScanner);
+  window.addEventListener('load', initializeQrScanner);
 </script>
 
 </body>
