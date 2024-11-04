@@ -41,26 +41,25 @@
 
   function extractTicketNumber(decodedText) {
     try {
-      // If it's a URL, attempt to extract the ticketNumber parameter
+      // Attempt to treat decodedText as a URL to extract ticketNumber
       const url = new URL(decodedText);
       const ticketNumberParam = url.searchParams.get("ticketNumber");
 
       if (ticketNumberParam) {
-        return ticketNumberParam; // Ticket number from URL parameter
+        return ticketNumberParam; // Return ticket number if present in URL parameter
       }
     } catch (error) {
-      // Not a URL, proceed to check if it's a plain ticket number
+      // If decodedText is not a URL, treat it as a plain ticket number
     }
 
-    // If not a URL with ticketNumber, assume it is the ticket number itself
-    return decodedText;
+    return decodedText; // Return decodedText directly if it's not a URL
   }
 
   function onScanSuccess(decodedText, decodedResult) {
-    // Show the scanned content for debugging purposes
-    document.getElementById("result").innerText = `Scanned: ${decodedText}`;
+    // Display the scanned content for debugging
+    document.getElementById("result").innerText = `Scanned content: ${decodedText}`;
 
-    // Extract the ticket number from the QR code content
+    // Extract the ticket number from the scanned content
     const ticketNumber = extractTicketNumber(decodedText);
 
     if (!ticketNumber) {
@@ -68,14 +67,18 @@
       return;
     }
 
-    // Construct validation URL
+    // Log the extracted ticket number for debugging
+    console.log("Extracted ticket number:", ticketNumber);
+    document.getElementById("result").innerText = `Extracted ticket number: ${ticketNumber}`;
+
+    // Construct validation URL with the ticket number
     const validationUrl = `${GOOGLE_APPS_SCRIPT_URL}?ticketNumber=${encodeURIComponent(ticketNumber)}`;
 
-    // Make a GET request to the validation URL (Google Apps Script)
+    // Send GET request to the Google Apps Script for validation
     fetch(validationUrl)
       .then(response => response.text())
       .then(data => {
-        // Display the validation result
+        // Display the validation result in the result div
         document.getElementById("result").innerText = `Validation Result: ${data}`;
       })
       .catch(error => {
