@@ -37,13 +37,13 @@
 <div id="result">Waiting for scan...</div>
 
 <script>
-  // Replace with your Google Apps Script URL
+  // Replace with your Google Apps Script Web App URL
   const GOOGLE_APPS_SCRIPT_URL = 'https://script.google.com/macros/s/YOUR_DEPLOYMENT_ID/exec';
 
-  // Function to extract the ticket number from the QR code
+  // Function to extract the ticket number from the QR code content
   function extractTicketNumber(decodedText) {
     try {
-      // Try to parse decodedText as a URL to get ticketNumber parameter
+      // Attempt to treat decodedText as a URL and extract ticketNumber if present
       const url = new URL(decodedText);
       const ticketNumberParam = url.searchParams.get("ticketNumber");
 
@@ -51,10 +51,10 @@
         return ticketNumberParam;
       }
     } catch (error) {
-      // Not a URL, proceed to use the decodedText as the ticket number
+      // If it's not a URL, use decodedText directly as the ticket number
     }
 
-    return decodedText;
+    return decodedText; // Return decodedText as ticket number if not a URL
   }
 
   function onScanSuccess(decodedText, decodedResult) {
