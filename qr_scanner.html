@@ -3,8 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>QR Code Ticket Validator - Camera Test</title>
-  <script src="https://unpkg.com/html5-qrcode/minified/html5-qrcode.min.js"></script>
+  <title>Camera Feed Test</title>
   <style>
     body {
       display: flex;
@@ -17,13 +16,12 @@
       font-family: Arial, sans-serif;
       background-color: #f0f0f0;
     }
-    #qr-reader {
+    video {
       width: 100%;
       max-width: 400px;
-      height: 400px;
       background-color: #000;
     }
-    #result {
+    #status {
       margin-top: 20px;
       font-size: 18px;
       font-weight: bold;
@@ -33,26 +31,22 @@
 </head>
 <body>
 
-<h1>Camera Test for QR Code Ticket Validator</h1>
-<div id="qr-reader"></div>
-<div id="result">Initializing camera...</div>
+<h1>Camera Feed Test</h1>
+<video id="video" autoplay></video>
+<div id="status">Initializing camera...</div>
 
 <script>
-  function initializeCamera() {
-    const html5QrCode = new Html5Qrcode("qr-reader");
+  async function initializeCamera() {
+    const videoElement = document.getElementById("video");
 
-    html5QrCode.start(
-      { facingMode: "environment" },
-      {
-        fps: 10,  // Frames per second
-        rememberLastUsedCamera: true,  // Remember camera choice
-      }
-    ).then(() => {
-      document.getElementById("result").innerText = "Camera initialized successfully!";
-    }).catch(err => {
-      console.error("Camera initialization error:", err);
-      document.getElementById("result").innerText = "Error: Unable to initialize camera. Please check permissions and reload.";
-    });
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } });
+      videoElement.srcObject = stream;
+      document.getElementById("status").innerText = "Camera feed initialized!";
+    } catch (error) {
+      console.error("Camera access error:", error);
+      document.getElementById("status").innerText = "Error: Unable to access camera. Check permissions and try again.";
+    }
   }
 
   window.addEventListener('load', initializeCamera);
