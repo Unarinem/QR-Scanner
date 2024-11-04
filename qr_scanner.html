@@ -11,7 +11,9 @@
       display: flex;
       flex-direction: column;
       align-items: center;
-      margin-top: 20px;
+      justify-content: center;
+      height: 100vh;
+      margin: 0;
     }
     #qr-reader {
       width: 300px;
@@ -43,15 +45,25 @@
       document.getElementById("result").className = "scanned";
     }
 
-    // Initialize the QR code scanner
-    const qrReader = new Html5Qrcode("qr-reader");
-    qrReader.start(
-      { facingMode: "environment" },
-      { fps: 10, qrbox: 250 },
-      onScanSuccess
-    ).catch((err) => {
-      document.getElementById("result").innerText = "Error: Unable to access camera. Please check camera permissions.";
-      console.error("Camera initialization error:", err);
+    // Function to initialize the QR code scanner
+    function initializeQRScanner() {
+      const qrReader = new Html5Qrcode("qr-reader");
+
+      qrReader.start(
+        { facingMode: "environment" }, // Use back camera if available
+        { fps: 10, qrbox: 250 },
+        onScanSuccess
+      ).then(() => {
+        document.getElementById("result").innerText = "Camera initialized. Ready to scan.";
+      }).catch((err) => {
+        document.getElementById("result").innerText = "Error: Unable to access camera. Please check camera permissions.";
+        console.error("Camera initialization error:", err);
+      });
+    }
+
+    // Start the QR scanner after a short delay to allow permissions prompt
+    window.addEventListener("load", () => {
+      setTimeout(initializeQRScanner, 500); // Short delay to ensure camera permissions prompt
     });
   </script>
 </body>
