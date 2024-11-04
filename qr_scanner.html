@@ -51,43 +51,55 @@
   }
 
   // Handle QR code detection
-  function onScanSuccess(decodedText) {
+  async function onScanSuccess(decodedText) {
     const ticketNumber = extractTicketNumber(decodedText);
     document.getElementById("result").innerText = `Scanned: ${ticketNumber}`;
 
     // Validation request to Google Apps Script
     const validationUrl = `${GOOGLE_APPS_SCRIPT_URL}?ticketNumber=${encodeURIComponent(ticketNumber)}`;
-    fetch(validationUrl)
-      .then(response => response.text())
-      .then(data => {
-        document.getElementById("result").innerText = `Validation Result: ${data}`;
-      })
-      .catch(error => {
-        console.error("Validation error:", error);
-        document.getElementById("result").innerText = "Error validating ticket";
-      });
+    try {
+      const response = await fetch(validationUrl);
+      const result = await response.text();
+      document.getElementById("result").innerText = `Validation Result: ${result}`;
+    } catch (error) {
+      console.error("Validation error:", error);
+      document.getElementById("result").innerText = "Error validating ticket";
+    }
   }
 
-  async function startCameraAndScanner() {
+  async function startCamera() {
     const videoElement = document.getElementById('camera-preview');
     try {
       // Start camera feed
       const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } });
       videoElement.srcObject = stream;
-
-      // Initialize QR code scanner
-      const html5QrCode = new Html5Qrcode("camera-preview");
-      html5QrCode.scanFile(videoElement, true, onScanSuccess)
-        .catch(err => console.error("QR scanning error:", err));
-
+      document.getElementById("result").innerText = "Camera feed initialized successfully!";
+      startQrScanner(videoElement);
     } catch (error) {
       console.error("Camera initialization error:", error);
       document.getElementById("result").innerText = "Error: Unable to initialize camera. Please check permissions.";
     }
   }
 
-  // Run camera and QR scanner on page load
-  window.addEventListener('load', startCameraAndScanner);
+  function startQrScanner(videoElement) {
+    const html5QrCode = new Html5Qrcode("camera-preview");
+
+    // Scan at regular intervals without re-initializing the camera
+    const scanInterval = setInterval(async () => {
+      try {
+        const qrCodeMessage = await html5QrCode.scanFile(videoElement, true);
+        if (qrCodeMessage) {
+          clearInterval(scanInterval);  // Stop scanning once a QR code is detected
+          onScanSuccess(qrCodeMessage);
+        }
+      } catch (error) {
+        console.log("No QR code detected in this frame, continuing to scan...");
+      }
+    }, 1000);  // Adjust interval time as needed
+  }
+
+  // Initialize camera and start scanning on page load
+  window.addEventListener('load', startCamera);
 </script>
 
 </body>
