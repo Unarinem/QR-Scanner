@@ -19,8 +19,9 @@
     #qr-reader {
       width: 100%;
       max-width: 400px;
-      margin-top: 20px;
+      height: 300px;
       background-color: #000;
+      margin-top: 20px;
     }
     #result {
       margin-top: 20px;
@@ -34,35 +35,25 @@
 <h1>QR Code Ticket Validator</h1>
 <p>Scan the QR code to validate the ticket.</p>
 
-<div id="qr-reader">Camera feed will appear here</div>
-<div id="result">Waiting for scan...</div>
+<div id="qr-reader"></div>
+<div id="result">Initializing camera...</div>
 
 <script>
-  // Replace with your Google Apps Script Web App URL
   const GOOGLE_APPS_SCRIPT_URL = 'https://script.google.com/macros/s/YOUR_DEPLOYMENT_ID/exec';
 
-  // Function to extract the ticket number from the QR code content
   function extractTicketNumber(decodedText) {
     try {
-      // Try to treat decodedText as a URL to get ticketNumber parameter
       const url = new URL(decodedText);
       const ticketNumberParam = url.searchParams.get("ticketNumber");
-
-      if (ticketNumberParam) {
-        return ticketNumberParam;
-      }
+      if (ticketNumberParam) return ticketNumberParam;
     } catch (error) {
-      // If it's not a URL, assume decodedText directly as ticket number
+      // Not a URL, treat as a plain ticket number
     }
-
-    return decodedText; // Return decodedText directly if it's not a URL
+    return decodedText;
   }
 
-  function onScanSuccess(decodedText, decodedResult) {
-    // Display the scanned content for debugging
+  function onScanSuccess(decodedText) {
     document.getElementById("result").innerText = `Scanned: ${decodedText}`;
-
-    // Extract the ticket number from the QR code content
     const ticketNumber = extractTicketNumber(decodedText);
 
     if (!ticketNumber) {
@@ -70,14 +61,11 @@
       return;
     }
 
-    // Construct the validation URL with the ticket number
     const validationUrl = `${GOOGLE_APPS_SCRIPT_URL}?ticketNumber=${encodeURIComponent(ticketNumber)}`;
 
-    // Make a GET request to validate the ticket
     fetch(validationUrl)
       .then(response => response.text())
       .then(data => {
-        // Display the validation result
         document.getElementById("result").innerText = `Validation Result: ${data}`;
       })
       .catch(error => {
@@ -86,23 +74,26 @@
       });
   }
 
-  function onScanFailure(error) {
-    console.warn(`QR code scan error: ${error}`);
-  }
-
-  // Enhanced camera initialization with error handling
   function initializeCamera() {
-    try {
-      const html5QrcodeScanner = new Html5QrcodeScanner(
-        "qr-reader",
-        { fps: 10, qrbox: { width: 250, height: 250 } },
-        false
-      );
-      html5QrcodeScanner.render(onScanSuccess, onScanFailure);
-    } catch (error) {
-      console.error("Camera initialization error:", error);
-      document.getElementById("result").innerText = "Error: Unable to access camera. Please check camera permissions and reload the page.";
-    }
+    const qrCodeReader = new Html5Qrcode("qr-reader");
+
+    qrCodeReader.start(
+      { facingMode: "environment" },  // Use back camera if available
+      { fps: 10, qrbox: 250 },
+      onScanSuccess,
+      errorMessage => {
+        console.error(`QR Code scan error: ${errorMessage}`);
+        document.getElementById("result").innerText = `Scan error: ${errorMessage}`;
+      }
+    ).catch(err => {
+      console.error("Camera initialization failed:", err);
+      document.getElementById("result").innerText = "Error: Unable to access camera. Check permissions and reload the page.";
+    });
   }
 
-  // Wait for t
+  // Start camera on page load
+  window.addEventListener("load", initializeCamera);
+</script>
+
+</body>
+</html>
