@@ -13,12 +13,13 @@
       justify-content: center;
       height: 100vh;
       margin: 0;
-      text-align: center;
       font-family: Arial, sans-serif;
       background-color: #f0f0f0;
     }
     #qr-video {
-      display: none;
+      width: 100%;
+      max-width: 400px;
+      background-color: #000;
     }
     #result {
       margin-top: 20px;
@@ -31,8 +32,8 @@
 <body>
 
 <h1>QR Code Ticket Validator</h1>
+<video id="qr-video" autoplay playsinline></video>
 <canvas id="qr-canvas" style="display: none;"></canvas>
-<video id="qr-video" autoplay></video>
 <div id="result">Initializing QR code scanning...</div>
 
 <script>
@@ -40,6 +41,7 @@
   const video = document.getElementById("qr-video");
   const canvas = document.getElementById("qr-canvas");
   const canvasContext = canvas.getContext("2d");
+  const resultElement = document.getElementById("result");
 
   function extractTicketNumber(decodedText) {
     try {
@@ -54,10 +56,10 @@
     const validationUrl = `${GOOGLE_APPS_SCRIPT_URL}?ticketNumber=${encodeURIComponent(ticketNumber)}`;
     fetch(validationUrl)
       .then(response => response.text())
-      .then(data => document.getElementById("result").innerText = `Validation Result: ${data}`)
+      .then(data => resultElement.innerText = `Validation Result: ${data}`)
       .catch(error => {
         console.error("Validation error:", error);
-        document.getElementById("result").innerText = "Error validating ticket";
+        resultElement.innerText = "Error validating ticket";
       });
   }
 
@@ -66,29 +68,34 @@
       .then(stream => {
         video.srcObject = stream;
         video.play();
+        resultElement.innerText = "Scanning for QR codes...";
 
         const scanInterval = setInterval(() => {
           if (video.readyState === video.HAVE_ENOUGH_DATA) {
+            // Set canvas dimensions to video dimensions
             canvas.width = video.videoWidth;
             canvas.height = video.videoHeight;
             canvasContext.drawImage(video, 0, 0, canvas.width, canvas.height);
 
+            // Get image data from the canvas and scan for QR codes
             const imageData = canvasContext.getImageData(0, 0, canvas.width, canvas.height);
             const code = jsQR(imageData.data, imageData.width, imageData.height, { inversionAttempts: "dontInvert" });
 
             if (code) {
               const ticketNumber = extractTicketNumber(code.data);
-              document.getElementById("result").innerText = `Scanned: ${ticketNumber}`;
+              resultElement.innerText = `Scanned: ${ticketNumber}`;
               validateTicket(ticketNumber);
+
+              // Stop scanning once a QR code is detected
               clearInterval(scanInterval);
               stopVideoStream();
             }
           }
-        }, 500); // Adjust scan interval as necessary
+        }, 500); // Scans every 500ms; adjust if needed
       })
       .catch(error => {
         console.error("Error accessing camera:", error);
-        document.getElementById("result").innerText = "Unable to access camera. Check permissions.";
+        resultElement.innerText = "Unable to access camera. Check permissions.";
       });
   }
 
