@@ -3,7 +3,8 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Camera Access Test</title>
+  <title>QR Code Ticket Validator</title>
+  <script src="https://unpkg.com/html5-qrcode/minified/html5-qrcode.min.js"></script>
   <style>
     body {
       font-family: Arial, sans-serif;
@@ -16,10 +17,12 @@
       text-align: center;
       background-color: #f0f0f0;
     }
-    #camera-preview {
-      width: 100%;
-      height: 300px;
+    #qr-reader {
+      width: 400px;
+      height: 400px;
+      margin-top: 20px;
       background-color: #000;
+      position: relative;
     }
     #result {
       margin-top: 20px;
@@ -31,35 +34,67 @@
 </head>
 <body>
 
-<h1>Camera Access Test</h1>
-<p>Testing camera initialization.</p>
+<h1>QR Code Ticket Validator</h1>
+<p>Align the QR code within the box to validate the ticket.</p>
 
-<video id="camera-preview" autoplay></video>
-<div id="result">Initializing camera...</div>
+<div id="qr-reader"></div>
+<div id="result">Initializing QR scanner...</div>
 
 <script>
-  async function testCameraAccess() {
-    const videoElement = document.getElementById("camera-preview");
-    const resultElement = document.getElementById("result");
+  const GOOGLE_APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxL9RcH0b-6QhCgGpHEfH9fQ7TYrXJf6TJKrSEiSeS5UB3A4kMRQJKIW7uDWxcXmtAu/exec';
 
+  // Basic QR code handler with debugging output
+  function onScanSuccess(decodedText) {
+    console.log("QR Code detected:", decodedText);  // Logs detected QR code text
+    document.getElementById("result").innerText = `Scanned: ${decodedText}`;
+
+    const ticketNumber = extractTicketNumber(decodedText);
+    const validationUrl = `${GOOGLE_APPS_SCRIPT_URL}?ticketNumber=${encodeURIComponent(ticketNumber)}`;
+
+    // Send validation request
+    fetch(validationUrl)
+      .then(response => response.text())
+      .then(data => document.getElementById("result").innerText = `Validation Result: ${data}`)
+      .catch(error => {
+        console.error("Validation request error:", error);
+        document.getElementById("result").innerText = "Error validating ticket";
+      });
+  }
+
+  // Helper function to extract ticket number from URL or raw text
+  function extractTicketNumber(decodedText) {
     try {
-      // Try to access the camera
-      const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } });
-      videoElement.srcObject = stream;
-      resultElement.innerText = "Camera initialized successfully!";
+      const url = new URL(decodedText);
+      const ticketNumberParam = url.searchParams.get("ticketNumber");
+      return ticketNumberParam ? ticketNumberParam : decodedText;
     } catch (error) {
-      console.error("Camera access error:", error);
-      if (error.name === 'NotAllowedError') {
-        resultElement.innerText = "Camera access denied. Please check permissions and try again.";
-      } else if (error.name === 'NotFoundError') {
-        resultElement.innerText = "No camera found. Please ensure your device has a working camera.";
-      } else {
-        resultElement.innerText = `Camera error: ${error.message}`;
-      }
+      return decodedText;
     }
   }
 
-  window.addEventListener("load", testCameraAccess);
+  function initializeScanner() {
+    const html5QrCode = new Html5Qrcode("qr-reader");
+
+    // Scanner configuration
+    const cameraConfig = { facingMode: "environment" };
+    const scannerConfig = { fps: 10, qrbox: { width: 300, height: 300 } };
+
+    // Start QR scanner
+    html5QrCode.start(
+      cameraConfig,
+      scannerConfig,
+      onScanSuccess,  // Handles successful QR code scans
+      errorMessage => {
+        console.warn(`QR Code scan error: ${errorMessage}`);
+      }
+    ).catch(err => {
+      console.error("Camera initialization error:", err);
+      document.getElementById("result").innerText = "Error: Unable to start QR scanner. Please check permissions.";
+    });
+  }
+
+  // Initialize scanner when the page loads
+  window.addEventListener("load", initializeScanner);
 </script>
 
 </body>
