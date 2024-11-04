@@ -3,9 +3,8 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>QR Code Scanner</title>
-  <!-- Instascan Library -->
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/instascan/1.0.0/instascan.min.js"></script>
+  <title>QR Code Ticket Validator</title>
+  <script src="https://unpkg.com/html5-qrcode/minified/html5-qrcode.min.js"></script>
   <style>
     body {
       font-family: Arial, sans-serif;
@@ -15,58 +14,85 @@
       justify-content: center;
       height: 100vh;
       margin: 0;
-      background-color: #f0f0f0;
+      text-align: center;
     }
-    video {
-      width: 90vw;
+    #qr-reader {
+      width: 100%;
       max-width: 400px;
-      height: auto;
-      border: 1px solid #ddd;
       margin-top: 20px;
-      background-color: #000;
     }
     #result {
-      font-size: 16px;
       margin-top: 20px;
-      padding: 10px;
-      text-align: center;
-      border-radius: 8px;
-      background-color: #ffffff;
-      box-shadow: 0px 4px 6px rgba(0, 0, 0, 0.1);
+      font-size: 18px;
+      font-weight: bold;
     }
-    /* Feedback colors */
-    #result.valid { color: green; background-color: #e0f7e0; }
-    #result.invalid { color: red; background-color: #fde0e0; }
-    #result.scanned { color: blue; background-color: #e0e0fd; }
   </style>
 </head>
 <body>
-  <h3>Scan QR Code</h3>
-  <video id="preview"></video>
-  <p id="result" class="scanned">Initializing camera...</p>
 
-  <script>
-    let scanner = new Instascan.Scanner({ video: document.getElementById('preview') });
-    
-    // Called when a QR code is successfully scanned
-    scanner.addListener('scan', function (content) {
-      document.getElementById("result").innerText = "Scanned: " + content;
-      document.getElementById("result").className = "scanned";
-    });
+<h1>QR Code Ticket Validator</h1>
+<p>Scan the QR code to validate the ticket.</p>
 
-    // Initialize the camera and scanner
-    Instascan.Camera.getCameras().then(function (cameras) {
-      if (cameras.length > 0) {
-        // Use the back camera if available
-        scanner.start(cameras[0]); // Use cameras[1] if you want to use the front camera instead
-        document.getElementById("result").innerText = "Camera initialized. Ready to scan.";
-      } else {
-        document.getElementById("result").innerText = "No cameras found. Please check camera settings.";
-      }
-    }).catch(function (e) {
-      document.getElementById("result").innerText = "Error accessing camera: " + e;
-      console.error(e);
-    });
-  </script>
+<div id="qr-reader"></div>
+<div id="result">Waiting for scan...</div>
+
+<script>
+  const GOOGLE_APPS_SCRIPT_URL = 'https://script.google.com/macros/s/YOUR_DEPLOYMENT_ID/exec';
+
+  function extractTicketNumber(decodedText) {
+    // Check if decodedText is a URL with ticketNumber parameter
+    const url = new URL(decodedText, window.location.origin);
+    const ticketNumber = url.searchParams.get("ticketNumber");
+
+    if (ticketNumber) {
+      return ticketNumber; // If URL, return the extracted ticket number
+    }
+
+    // If not a URL, assume decodedText itself is the ticket number
+    return decodedText;
+  }
+
+  function onScanSuccess(decodedText, decodedResult) {
+    // Show the decoded result in the "result" div
+    document.getElementById("result").innerText = `Scanned: ${decodedText}`;
+
+    // Extract the ticket number from the QR code content
+    const ticketNumber = extractTicketNumber(decodedText);
+
+    if (!ticketNumber) {
+      document.getElementById("result").innerText = "Invalid QR code format. No ticket number found.";
+      return;
+    }
+
+    // Construct validation URL
+    const validationUrl = `${GOOGLE_APPS_SCRIPT_URL}?ticketNumber=${encodeURIComponent(ticketNumber)}`;
+
+    // Make a GET request to the validation URL (Google Apps Script)
+    fetch(validationUrl)
+      .then(response => response.text())
+      .then(data => {
+        // Display the validation result
+        document.getElementById("result").innerText = `Validation Result: ${data}`;
+      })
+      .catch(error => {
+        console.error("Error:", error);
+        document.getElementById("result").innerText = "Error validating ticket";
+      });
+  }
+
+  function onScanFailure(error) {
+    // Log scan failure in the console
+    console.warn(`QR code scan error: ${error}`);
+  }
+
+  // Initialize the HTML5 QR code scanner
+  let html5QrcodeScanner = new Html5QrcodeScanner(
+    "qr-reader", 
+    { fps: 10, qrbox: { width: 250, height: 250 } },
+    false
+  );
+  html5QrcodeScanner.render(onScanSuccess, onScanFailure);
+</script>
+
 </body>
 </html>
