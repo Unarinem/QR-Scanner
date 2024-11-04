@@ -81,14 +81,14 @@
       // Start QR scanning at intervals
       setInterval(() => {
         context.drawImage(videoElement, 0, 0, canvasElement.width, canvasElement.height);
-        const imageData = context.getImageData(0, 0, canvasElement.width, canvasElement.height);
-
-        Html5Qrcode.scanImage(imageData, { formatsToSupport: [Html5QrcodeSupportedFormats.QR_CODE] })
+        
+        Html5Qrcode.scanImage(canvasElement, { formatsToSupport: [Html5QrcodeSupportedFormats.QR_CODE] })
           .then(decodedText => {
+            console.log("QR Code detected:", decodedText);
             onScanSuccess(decodedText);
           })
           .catch(error => {
-            console.log("No QR code detected in this frame.");
+            console.log("Scanning attempt, no QR code detected.");
           });
       }, 1000); // Adjust the interval as needed
 
