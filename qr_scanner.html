@@ -3,11 +3,9 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Camera Initialization Test</title>
-  <script src="https://unpkg.com/html5-qrcode/minified/html5-qrcode.min.js"></script>
+  <title>Direct Camera Access Test</title>
   <style>
     body {
-      font-family: Arial, sans-serif;
       display: flex;
       flex-direction: column;
       align-items: center;
@@ -15,12 +13,13 @@
       height: 100vh;
       margin: 0;
       text-align: center;
+      font-family: Arial, sans-serif;
       background-color: #f0f0f0;
     }
-    #qr-reader {
-      width: 400px;
-      height: 400px;
-      margin-top: 20px;
+    #camera-preview {
+      width: 100%;
+      max-width: 400px;
+      height: 300px;
       background-color: #000;
     }
     #result {
@@ -33,37 +32,34 @@
 </head>
 <body>
 
-<h1>Camera Initialization Test</h1>
-<p>This is a test to verify camera feed initialization.</p>
-
-<div id="qr-reader"></div>
+<h1>Direct Camera Access Test</h1>
+<video id="camera-preview" autoplay></video>
 <div id="result">Initializing camera...</div>
 
 <script>
-  // Function to initialize the camera only, without QR scanning
-  function initializeCameraOnly() {
-    const html5QrCode = new Html5Qrcode("qr-reader");
+  async function startCamera() {
+    const videoElement = document.getElementById('camera-preview');
+    const resultElement = document.getElementById('result');
 
-    // Start the camera feed without setting a QR scan handler
-    html5QrCode.start(
-      { facingMode: "environment" },  // Use back camera for better scanning
-      { fps: 10, qrbox: { width: 300, height: 300 } },
-      decodedText => { 
-        // Placeholder for scan success handler; leaving empty to focus on camera initialization
-      },
-      errorMessage => {
-        console.warn(`Camera initialization error: ${errorMessage}`);
+    try {
+      // Attempt to get camera stream
+      const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } });
+      videoElement.srcObject = stream;
+      resultElement.innerText = 'Camera feed displayed successfully!';
+    } catch (error) {
+      console.error("Camera access error:", error);
+      if (error.name === 'NotAllowedError') {
+        resultElement.innerText = 'Camera access denied. Please allow camera access and refresh.';
+      } else if (error.name === 'NotFoundError') {
+        resultElement.innerText = 'No camera found. Please ensure your device has a working camera.';
+      } else {
+        resultElement.innerText = `Camera error: ${error.message}`;
       }
-    ).then(() => {
-      document.getElementById("result").innerText = "Camera feed initialized successfully!";
-    }).catch(err => {
-      console.error("Camera initialization error:", err);
-      document.getElementById("result").innerText = "Error: Unable to initialize camera. Please check permissions.";
-    });
+    }
   }
 
-  // Initialize camera on page load
-  window.addEventListener("load", initializeCameraOnly);
+  // Run the camera access test on page load
+  window.addEventListener('load', startCamera);
 </script>
 
 </body>
