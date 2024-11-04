@@ -69,24 +69,36 @@
   function initializeQrScanner() {
     const html5QrCode = new Html5Qrcode("qr-reader");
 
-    // Start the QR scanner without directly configuring video
-    html5QrCode.start(
-      { facingMode: "environment" },
-      {
-        fps: 10,
-        qrbox: { width: 250, height: 250 },
-        rememberLastUsedCamera: true,
-      },
-      onScanSuccess,
-      onScanFailure
-    )
-    .then(() => {
-      document.getElementById("result").innerText = "QR code scanner initialized. Ready to scan!";
-    })
-    .catch(error => {
-      console.error("QR scanner initialization error:", error);
-      document.getElementById("result").innerText = "Error: Unable to access camera or initialize scanner. Check permissions.";
-    });
+    // Attempt to get the list of available cameras and use the first one as a fallback
+    Html5Qrcode.getCameras()
+      .then(devices => {
+        if (devices && devices.length) {
+          const cameraId = devices[0].id; // Use first camera by default
+
+          html5QrCode.start(
+            { deviceId: { exact: cameraId } },
+            {
+              fps: 10,
+              qrbox: { width: 250, height: 250 },
+              rememberLastUsedCamera: true,
+            },
+            onScanSuccess,
+            onScanFailure
+          ).then(() => {
+            document.getElementById("result").innerText = "QR code scanner initialized. Ready to scan!";
+          })
+          .catch(error => {
+            console.error("QR scanner initialization error:", error);
+            document.getElementById("result").innerText = "Error: Unable to access camera or initialize scanner. Check permissions.";
+          });
+        } else {
+          document.getElementById("result").innerText = "No camera device found.";
+        }
+      })
+      .catch(error => {
+        console.error("Camera access error:", error);
+        document.getElementById("result").innerText = "Error accessing cameras. Check permissions.";
+      });
   }
 
   window.addEventListener('load', initializeQrScanner);
