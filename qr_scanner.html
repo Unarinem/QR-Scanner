@@ -20,6 +20,7 @@
       width: 100%;
       max-width: 400px;
       margin-top: 20px;
+      background-color: #000;
     }
     #result {
       margin-top: 20px;
@@ -33,7 +34,7 @@
 <h1>QR Code Ticket Validator</h1>
 <p>Scan the QR code to validate the ticket.</p>
 
-<div id="qr-reader"></div>
+<div id="qr-reader">Camera feed will appear here</div>
 <div id="result">Waiting for scan...</div>
 
 <script>
@@ -89,14 +90,19 @@
     console.warn(`QR code scan error: ${error}`);
   }
 
-  // Initialize the HTML5 QR code scanner
-  const html5QrcodeScanner = new Html5QrcodeScanner(
-    "qr-reader",
-    { fps: 10, qrbox: { width: 250, height: 250 } },
-    false
-  );
-  html5QrcodeScanner.render(onScanSuccess, onScanFailure);
-</script>
+  // Enhanced camera initialization with error handling
+  function initializeCamera() {
+    try {
+      const html5QrcodeScanner = new Html5QrcodeScanner(
+        "qr-reader",
+        { fps: 10, qrbox: { width: 250, height: 250 } },
+        false
+      );
+      html5QrcodeScanner.render(onScanSuccess, onScanFailure);
+    } catch (error) {
+      console.error("Camera initialization error:", error);
+      document.getElementById("result").innerText = "Error: Unable to access camera. Please check camera permissions and reload the page.";
+    }
+  }
 
-</body>
-</html>
+  // Wait for t
