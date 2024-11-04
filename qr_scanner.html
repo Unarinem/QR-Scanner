@@ -65,27 +65,27 @@
 
   function onScanFailure(error) {
     console.warn("Scanning attempt with no result:", error);
-    // Keep trying to scan without losing the camera feed
   }
 
-  function initializeScanner() {
+  async function initializeScanner() {
     const html5QrCode = new Html5Qrcode("qr-reader");
 
-    html5QrCode.start(
-      { facingMode: "environment" }, // Use the back camera
-      {
-        fps: 10,
-        qrbox: { width: 250, height: 250 },
-        rememberLastUsedCamera: true,
-      },
-      onScanSuccess,
-      onScanFailure
-    ).then(() => {
+    try {
+      await html5QrCode.start(
+        { facingMode: "environment" },
+        {
+          fps: 10,
+          qrbox: { width: 250, height: 250 },
+          rememberLastUsedCamera: true,
+        },
+        onScanSuccess,
+        onScanFailure
+      );
       document.getElementById("result").innerText = "Camera initialized successfully!";
-    }).catch(err => {
+    } catch (err) {
       console.error("Camera initialization error:", err);
       document.getElementById("result").innerText = "Error: Unable to initialize camera. Please check permissions.";
-    });
+    }
   }
 
   window.addEventListener('load', initializeScanner);
