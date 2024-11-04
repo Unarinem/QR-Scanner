@@ -17,11 +17,6 @@
       font-family: Arial, sans-serif;
       background-color: #f0f0f0;
     }
-    #video {
-      width: 100%;
-      max-width: 400px;
-      background-color: #000;
-    }
     #qr-reader {
       width: 100%;
       max-width: 400px;
@@ -38,9 +33,8 @@
 <body>
 
 <h1>QR Code Ticket Validator</h1>
-<video id="video" autoplay></video>
-<div id="result">Initializing QR code scanning...</div>
 <div id="qr-reader"></div>
+<div id="result">Initializing QR code scanning...</div>
 
 <script>
   const GOOGLE_APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxL9RcH0b-6QhCgGpHEfH9fQ7TYrXJf6TJKrSEiSeS5UB3A4kMRQJKIW7uDWxcXmtAu/exec';
@@ -72,33 +66,29 @@
     console.warn("Scanning attempt with no result:", error);
   }
 
-  async function initializeCamera() {
-    const videoElement = document.getElementById("video");
-
-    try {
-      const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } });
-      videoElement.srcObject = stream;
-
-      // Initialize QR code scanning
-      const html5QrCode = new Html5Qrcode("qr-reader");
-      await html5QrCode.start(
-        { facingMode: "environment" },
-        {
-          fps: 10,
-          qrbox: { width: 250, height: 250 },
-          rememberLastUsedCamera: true,
-        },
-        onScanSuccess,
-        onScanFailure
-      );
+  function initializeQrReader() {
+    const html5QrCode = new Html5Qrcode("qr-reader");
+    
+    html5QrCode.start(
+      { facingMode: "environment" }, // Switch to "user" for front-facing camera on desktop
+      {
+        fps: 10,
+        qrbox: { width: 250, height: 250 },
+        rememberLastUsedCamera: true,
+      },
+      onScanSuccess,
+      onScanFailure
+    )
+    .then(() => {
       document.getElementById("result").innerText = "Camera and QR code scanning initialized successfully!";
-    } catch (error) {
+    })
+    .catch(error => {
       console.error("Camera access error:", error);
       document.getElementById("result").innerText = "Error: Unable to access camera. Check permissions.";
-    }
+    });
   }
 
-  window.addEventListener('load', initializeCamera);
+  window.addEventListener('load', initializeQrReader);
 </script>
 
 </body>
