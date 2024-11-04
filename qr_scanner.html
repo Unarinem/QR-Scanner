@@ -4,7 +4,8 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>QR Code Scanner</title>
-  <script src="https://unpkg.com/html5-qrcode/minified/html5-qrcode.min.js"></script>
+  <!-- Instascan Library -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/instascan/1.0.0/instascan.min.js"></script>
   <style>
     body {
       font-family: Arial, sans-serif;
@@ -16,14 +17,13 @@
       margin: 0;
       background-color: #f0f0f0;
     }
-    #qr-reader {
+    video {
       width: 90vw;
       max-width: 400px;
-      height: 90vw;
-      max-height: 400px;
+      height: auto;
       border: 1px solid #ddd;
       margin-top: 20px;
-      background-color: #fff;
+      background-color: #000;
     }
     #result {
       font-size: 16px;
@@ -42,35 +42,30 @@
 </head>
 <body>
   <h3>Scan QR Code</h3>
-  <div id="qr-reader"></div>
+  <video id="preview"></video>
   <p id="result" class="scanned">Initializing camera...</p>
 
   <script>
-    function onScanSuccess(decodedText) {
-      // Display the scanned QR code content
-      document.getElementById("result").innerText = "Scanned: " + decodedText;
+    let scanner = new Instascan.Scanner({ video: document.getElementById('preview') });
+    
+    // Called when a QR code is successfully scanned
+    scanner.addListener('scan', function (content) {
+      document.getElementById("result").innerText = "Scanned: " + content;
       document.getElementById("result").className = "scanned";
-    }
+    });
 
-    function initializeQRScanner() {
-      const qrReader = new Html5Qrcode("qr-reader");
-
-      qrReader.start(
-        { facingMode: "environment" }, // Use back camera if available
-        { fps: 10, qrbox: { width: 250, height: 250 } },
-        onScanSuccess
-      ).then(() => {
+    // Initialize the camera and scanner
+    Instascan.Camera.getCameras().then(function (cameras) {
+      if (cameras.length > 0) {
+        // Use the back camera if available
+        scanner.start(cameras[0]); // Use cameras[1] if you want to use the front camera instead
         document.getElementById("result").innerText = "Camera initialized. Ready to scan.";
-      }).catch((err) => {
-        // Show a clear error message in case of camera access issues
-        document.getElementById("result").innerText = "Error: Unable to access camera. Please check camera permissions and try again.";
-        console.error("Camera initialization error:", err);
-      });
-    }
-
-    // Start the QR scanner with a delay to allow for permissions prompt
-    window.addEventListener("load", () => {
-      setTimeout(initializeQRScanner, 500); // Delay to allow permissions prompt
+      } else {
+        document.getElementById("result").innerText = "No cameras found. Please check camera settings.";
+      }
+    }).catch(function (e) {
+      document.getElementById("result").innerText = "Error accessing camera: " + e;
+      console.error(e);
     });
   </script>
 </body>
