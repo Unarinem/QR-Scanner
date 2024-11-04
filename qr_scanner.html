@@ -3,7 +3,8 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Camera Feed Test</title>
+  <title>QR Code Ticket Validator</title>
+  <script src="https://unpkg.com/html5-qrcode/minified/html5-qrcode.min.js"></script>
   <style>
     body {
       display: flex;
@@ -16,12 +17,15 @@
       font-family: Arial, sans-serif;
       background-color: #f0f0f0;
     }
-    video {
+    #video {
       width: 100%;
       max-width: 400px;
       background-color: #000;
     }
-    #status {
+    #qr-reader {
+      display: none; /* Hide the QR reader for the video feed */
+    }
+    #result {
       margin-top: 20px;
       font-size: 18px;
       font-weight: bold;
@@ -31,21 +35,64 @@
 </head>
 <body>
 
-<h1>Camera Feed Test</h1>
+<h1>QR Code Ticket Validator</h1>
 <video id="video" autoplay></video>
-<div id="status">Initializing camera...</div>
+<div id="result">Initializing QR code scanning...</div>
+<div id="qr-reader"></div>
 
 <script>
+  const GOOGLE_APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxL9RcH0b-6QhCgGpHEfH9fQ7TYrXJf6TJKrSEiSeS5UB3A4kMRQJKIW7uDWxcXmtAu/exec';
+
+  function extractTicketNumber(decodedText) {
+    try {
+      const url = new URL(decodedText);
+      return url.searchParams.get("ticketNumber") || decodedText;
+    } catch {
+      return decodedText; // Use the decoded text directly if it's not a URL
+    }
+  }
+
+  function onScanSuccess(decodedText) {
+    const ticketNumber = extractTicketNumber(decodedText);
+    document.getElementById("result").innerText = `Scanned: ${ticketNumber}`;
+
+    const validationUrl = `${GOOGLE_APPS_SCRIPT_URL}?ticketNumber=${encodeURIComponent(ticketNumber)}`;
+    fetch(validationUrl)
+      .then(response => response.text())
+      .then(data => document.getElementById("result").innerText = `Validation Result: ${data}`)
+      .catch(error => {
+        console.error("Validation error:", error);
+        document.getElementById("result").innerText = "Error validating ticket";
+      });
+  }
+
+  function onScanFailure(error) {
+    console.warn("Scanning attempt with no result:", error);
+  }
+
   async function initializeCamera() {
     const videoElement = document.getElementById("video");
 
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } });
       videoElement.srcObject = stream;
-      document.getElementById("status").innerText = "Camera initialized successfully!";
+
+      // Initialize QR code scanning
+      const html5QrCode = new Html5Qrcode("qr-reader");
+      await html5QrCode.start(
+        { facingMode: "environment" },
+        {
+          fps: 10,
+          qrbox: { width: 250, height: 250 },
+          rememberLastUsedCamera: true,
+        },
+        onScanSuccess,
+        onScanFailure
+      );
+      document.getElementById("result").innerText = "Camera and QR code scanning initialized successfully!";
     } catch (error) {
       console.error("Camera access error:", error);
-      document.getElementById("status").innerText = "Error: Unable to access camera. Check permissions.";
+      document.getElementById("result").innerText = "Error: Unable to access camera. Check permissions.";
     }
   }
 
@@ -54,3 +101,4 @@
 
 </body>
 </html>
+
