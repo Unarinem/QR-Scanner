@@ -54,9 +54,19 @@
 
   function validateTicket(ticketNumber) {
     const validationUrl = `${GOOGLE_APPS_SCRIPT_URL}?ticketNumber=${encodeURIComponent(ticketNumber)}`;
+    console.log("Sending validation request to:", validationUrl); // Debugging log
+
     fetch(validationUrl)
-      .then(response => response.text())
-      .then(data => resultElement.innerText = `Validation Result: ${data}`)
+      .then(response => {
+        if (!response.ok) {
+          throw new Error(`Server error: ${response.status}`);
+        }
+        return response.text();
+      })
+      .then(data => {
+        console.log("Validation response:", data); // Debugging log
+        resultElement.innerText = `Validation Result: ${data}`;
+      })
       .catch(error => {
         console.error("Validation error:", error);
         resultElement.innerText = "Error validating ticket";
@@ -72,12 +82,10 @@
 
         const scanInterval = setInterval(() => {
           if (video.readyState === video.HAVE_ENOUGH_DATA) {
-            // Set canvas dimensions to video dimensions
             canvas.width = video.videoWidth;
             canvas.height = video.videoHeight;
             canvasContext.drawImage(video, 0, 0, canvas.width, canvas.height);
 
-            // Get image data from the canvas and scan for QR codes
             const imageData = canvasContext.getImageData(0, 0, canvas.width, canvas.height);
             const code = jsQR(imageData.data, imageData.width, imageData.height, { inversionAttempts: "dontInvert" });
 
@@ -86,12 +94,11 @@
               resultElement.innerText = `Scanned: ${ticketNumber}`;
               validateTicket(ticketNumber);
 
-              // Stop scanning once a QR code is detected
               clearInterval(scanInterval);
               stopVideoStream();
             }
           }
-        }, 500); // Scans every 500ms; adjust if needed
+        }, 500);
       })
       .catch(error => {
         console.error("Error accessing camera:", error);
