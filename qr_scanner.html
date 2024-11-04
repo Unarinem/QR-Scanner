@@ -40,20 +40,24 @@
   const GOOGLE_APPS_SCRIPT_URL = 'https://script.google.com/macros/s/YOUR_DEPLOYMENT_ID/exec';
 
   function extractTicketNumber(decodedText) {
-    // Check if decodedText is a URL with ticketNumber parameter
-    const url = new URL(decodedText, window.location.origin);
-    const ticketNumber = url.searchParams.get("ticketNumber");
+    try {
+      // If it's a URL, attempt to extract the ticketNumber parameter
+      const url = new URL(decodedText);
+      const ticketNumberParam = url.searchParams.get("ticketNumber");
 
-    if (ticketNumber) {
-      return ticketNumber; // If URL, return the extracted ticket number
+      if (ticketNumberParam) {
+        return ticketNumberParam; // Ticket number from URL parameter
+      }
+    } catch (error) {
+      // Not a URL, proceed to check if it's a plain ticket number
     }
 
-    // If not a URL, assume decodedText itself is the ticket number
+    // If not a URL with ticketNumber, assume it is the ticket number itself
     return decodedText;
   }
 
   function onScanSuccess(decodedText, decodedResult) {
-    // Show the decoded result in the "result" div
+    // Show the scanned content for debugging purposes
     document.getElementById("result").innerText = `Scanned: ${decodedText}`;
 
     // Extract the ticket number from the QR code content
@@ -81,7 +85,7 @@
   }
 
   function onScanFailure(error) {
-    // Log scan failure in the console
+    // Log scan failure for debugging
     console.warn(`QR code scan error: ${error}`);
   }
 
