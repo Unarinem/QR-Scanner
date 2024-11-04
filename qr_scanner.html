@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>QR Code Ticket Validator</title>
+  <title>Camera Display Test</title>
   <script src="https://unpkg.com/html5-qrcode/minified/html5-qrcode.min.js"></script>
   <style>
     body {
@@ -22,7 +22,6 @@
       height: 400px;
       margin-top: 20px;
       background-color: #000;
-      position: relative;
     }
     #result {
       margin-top: 20px;
@@ -34,67 +33,34 @@
 </head>
 <body>
 
-<h1>QR Code Ticket Validator</h1>
-<p>Align the QR code within the box to validate the ticket.</p>
+<h1>Camera Display Test</h1>
+<p>This is a test to see if the camera feed displays.</p>
 
 <div id="qr-reader"></div>
-<div id="result">Initializing QR scanner...</div>
+<div id="result">Initializing camera...</div>
 
 <script>
-  const GOOGLE_APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxL9RcH0b-6QhCgGpHEfH9fQ7TYrXJf6TJKrSEiSeS5UB3A4kMRQJKIW7uDWxcXmtAu/exec';
-
-  // Basic QR code handler with debugging output
-  function onScanSuccess(decodedText) {
-    console.log("QR Code detected:", decodedText);  // Logs detected QR code text
-    document.getElementById("result").innerText = `Scanned: ${decodedText}`;
-
-    const ticketNumber = extractTicketNumber(decodedText);
-    const validationUrl = `${GOOGLE_APPS_SCRIPT_URL}?ticketNumber=${encodeURIComponent(ticketNumber)}`;
-
-    // Send validation request
-    fetch(validationUrl)
-      .then(response => response.text())
-      .then(data => document.getElementById("result").innerText = `Validation Result: ${data}`)
-      .catch(error => {
-        console.error("Validation request error:", error);
-        document.getElementById("result").innerText = "Error validating ticket";
-      });
-  }
-
-  // Helper function to extract ticket number from URL or raw text
-  function extractTicketNumber(decodedText) {
-    try {
-      const url = new URL(decodedText);
-      const ticketNumberParam = url.searchParams.get("ticketNumber");
-      return ticketNumberParam ? ticketNumberParam : decodedText;
-    } catch (error) {
-      return decodedText;
-    }
-  }
-
-  function initializeScanner() {
+  function initializeCameraTest() {
     const html5QrCode = new Html5Qrcode("qr-reader");
 
-    // Scanner configuration
-    const cameraConfig = { facingMode: "environment" };
-    const scannerConfig = { fps: 10, qrbox: { width: 300, height: 300 } };
-
-    // Start QR scanner
+    // Only display camera feed
     html5QrCode.start(
-      cameraConfig,
-      scannerConfig,
-      onScanSuccess,  // Handles successful QR code scans
+      { facingMode: "environment" },  // Use back camera
+      { fps: 10, qrbox: { width: 300, height: 300 } },  // Basic config for the display test
+      () => { /* Placeholder for scan success callback */ },
       errorMessage => {
-        console.warn(`QR Code scan error: ${errorMessage}`);
+        console.warn(`Camera display error: ${errorMessage}`);
       }
-    ).catch(err => {
+    ).then(() => {
+      document.getElementById("result").innerText = "Camera feed displayed successfully!";
+    }).catch(err => {
       console.error("Camera initialization error:", err);
-      document.getElementById("result").innerText = "Error: Unable to start QR scanner. Please check permissions.";
+      document.getElementById("result").innerText = "Error: Unable to access camera. Check permissions.";
     });
   }
 
-  // Initialize scanner when the page loads
-  window.addEventListener("load", initializeScanner);
+  // Initialize the camera on page load
+  window.addEventListener("load", initializeCameraTest);
 </script>
 
 </body>
