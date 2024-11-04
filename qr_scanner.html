@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>QR Code Ticket Validator</title>
+  <title>QR Code Scanner - Minimal Setup</title>
   <script src="https://unpkg.com/html5-qrcode/minified/html5-qrcode.min.js"></script>
   <style>
     body {
@@ -20,10 +20,9 @@
     #qr-reader {
       width: 400px;
       height: 400px;
-      margin-top: 20px;
-      overflow: hidden;
       background-color: #000;
       position: relative;
+      overflow: hidden;
     }
     #result {
       margin-top: 20px;
@@ -34,55 +33,31 @@
 </head>
 <body>
 
-<h1>QR Code Ticket Validator</h1>
-<p>Align the QR code within the box to validate the ticket.</p>
+<h1>QR Code Scanner</h1>
+<p>Point your QR code within the box to scan.</p>
 
 <div id="qr-reader"></div>
 <div id="result">Initializing camera...</div>
 
 <script>
-  // Replace this with your Google Apps Script Web App URL
-  const GOOGLE_APPS_SCRIPT_URL = 'https://script.google.com/macros/s/YOUR_DEPLOYMENT_ID/exec';
-
-  // Function to extract ticket number from QR code content
-  function extractTicketNumber(decodedText) {
-    try {
-      const url = new URL(decodedText);
-      const ticketNumberParam = url.searchParams.get("ticketNumber");
-      return ticketNumberParam ? ticketNumberParam : decodedText;
-    } catch (error) {
-      return decodedText;
-    }
-  }
-
-  // QR code scanning success function
   function onScanSuccess(decodedText) {
     document.getElementById("result").innerText = `Scanned: ${decodedText}`;
-    const ticketNumber = extractTicketNumber(decodedText);
+    console.log("Scanned text:", decodedText);
+  }
 
-    if (!ticketNumber) {
-      document.getElementById("result").innerText = "Invalid QR code format. No ticket number found.";
-      return;
-    }
-
-    const validationUrl = `${GOOGLE_APPS_SCRIPT_URL}?ticketNumber=${encodeURIComponent(ticketNumber)}`;
-
-    fetch(validationUrl)
-      .then(response => response.text())
-      .then(data => document.getElementById("result").innerText = `Validation Result: ${data}`)
-      .catch(error => document.getElementById("result").innerText = "Error validating ticket");
+  function onScanFailure(errorMessage) {
+    console.warn(`QR code scan error: ${errorMessage}`);
+    document.getElementById("result").innerText = `Scan error: ${errorMessage}`;
   }
 
   function initializeScanner() {
     const html5QrCode = new Html5Qrcode("qr-reader");
 
     html5QrCode.start(
-      { facingMode: "environment" },
-      { fps: 10, qrbox: { width: 400, height: 400 } }, // Crop to fit the 400x400px box
+      { facingMode: "environment" }, // Requests the back camera
+      { fps: 10, qrbox: { width: 400, height: 400 } },
       onScanSuccess,
-      errorMessage => {
-        console.warn(`QR Code scan error: ${errorMessage}`);
-      }
+      onScanFailure
     ).catch(err => {
       console.error("Camera initialization error:", err);
       document.getElementById("result").innerText = "Error: Unable to access camera. Check permissions and reload.";
