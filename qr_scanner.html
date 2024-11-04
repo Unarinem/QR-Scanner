@@ -3,8 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>QR Code Ticket Validator</title>
-  <script src="https://unpkg.com/html5-qrcode/minified/html5-qrcode.min.js"></script>
+  <title>Camera Feed Test and QR Scanning</title>
   <style>
     body {
       font-family: Arial, sans-serif;
@@ -16,14 +15,12 @@
       margin: 0;
       text-align: center;
     }
-    #qr-reader {
+    #camera-feed {
       width: 100%;
       max-width: 400px;
       height: 300px;
-      margin-top: 20px;
-      overflow: hidden;
-      position: relative;
       background-color: #000;
+      margin-top: 20px;
     }
     #result {
       margin-top: 20px;
@@ -35,73 +32,45 @@
 <body>
 
 <h1>QR Code Ticket Validator</h1>
-<p>Scan the QR code to validate the ticket.</p>
+<p>Camera test: initializing camera...</p>
 
-<div id="qr-reader"></div>
-<div id="result">Initializing camera...</div>
+<!-- Video element for displaying camera feed -->
+<video id="camera-feed" autoplay playsinline></video>
+<div id="result">Waiting for scan...</div>
 
 <script>
-  // Replace this with your Google Apps Script Web App URL
   const GOOGLE_APPS_SCRIPT_URL = 'https://script.google.com/macros/s/YOUR_DEPLOYMENT_ID/exec';
 
-  // Function to extract ticket number from QR code content
-  function extractTicketNumber(decodedText) {
+  async function initializeCamera() {
+    const videoElement = document.getElementById('camera-feed');
+    const resultElement = document.getElementById('result');
+
     try {
-      const url = new URL(decodedText);
-      const ticketNumberParam = url.searchParams.get("ticketNumber");
-      return ticketNumberParam ? ticketNumberParam : decodedText; // URL with param or plain ticket number
+      // Access the back camera
+      const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } });
+      videoElement.srcObject = stream;
+      resultElement.innerText = "Camera initialized. Please scan a QR code.";
+      
+      // Adding a manual scan button for flexibility in testing
+      const scanButton = document.createElement("button");
+      scanButton.innerText = "Scan QR Code";
+      scanButton.onclick = () => manualScan(videoElement);
+      document.body.appendChild(scanButton);
     } catch (error) {
-      return decodedText; // If not a URL, return text directly as ticket number
+      console.error("Camera initialization error:", error);
+      resultElement.innerText = "Error: Unable to access camera. Check permissions and reload the page.";
     }
   }
 
-  // QR code scanning success function
-  function onScanSuccess(decodedText) {
-    document.getElementById("result").innerText = `Scanned: ${decodedText}`;
-    const ticketNumber = extractTicketNumber(decodedText);
-
-    if (!ticketNumber) {
-      document.getElementById("result").innerText = "Invalid QR code format. No ticket number found.";
-      return;
-    }
-
-    // Construct validation URL with the ticket number
-    const validationUrl = `${GOOGLE_APPS_SCRIPT_URL}?ticketNumber=${encodeURIComponent(ticketNumber)}`;
-
-    // Send validation request
-    fetch(validationUrl)
-      .then(response => response.text())
-      .then(data => {
-        document.getElementById("result").innerText = `Validation Result: ${data}`;
-      })
-      .catch(error => {
-        console.error("Validation error:", error);
-        document.getElementById("result").innerText = "Error validating ticket";
-      });
+  function manualScan(videoElement) {
+    // Placeholder for QR code scanning logic
+    // Since `Html5Qrcode` isn't being used here, a real QR scanning solution would be needed,
+    // but this demonstrates access to the camera feed and scanning in a controlled way
+    document.getElementById("result").innerText = "Scanning QR code...";
   }
 
-  // QR code scanning failure function
-  function onScanFailure(error) {
-    console.warn(`QR Code scan error: ${error}`);
-  }
-
-  // Initialize camera with long lens (environment-facing) and cropped field of view
-  function initializeScanner() {
-    const html5QrCode = new Html5Qrcode("qr-reader");
-
-    // Start scanning using back camera with cropped FOV
-    html5QrCode.start(
-      { facingMode: { exact: "environment" } }, // Try to access long lens/back camera
-      { fps: 10, qrbox: { width: 250, height: 250 } }, // Cropped box to enhance QR detection
-      onScanSuccess,
-      onScanFailure
-    ).catch(err => {
-      console.error("Camera initialization error:", err);
-      document.getElementById("result").innerText = "Error: Unable to access camera. Check permissions and reload the page.";
-    });
-  }
-
-  window.addEventListener("load", initializeScanner);
+  // Initialize camera when the page loads
+  window.addEventListener("load", initializeCamera);
 </script>
 
 </body>
