@@ -3,7 +3,8 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Basic Camera Feed Test</title>
+  <title>QR Code Ticket Validator</title>
+  <script src="https://unpkg.com/html5-qrcode/minified/html5-qrcode.min.js"></script>
   <style>
     body {
       font-family: Arial, sans-serif;
@@ -15,14 +16,16 @@
       margin: 0;
       text-align: center;
     }
-    #camera-feed {
+    #qr-reader {
       width: 100%;
       max-width: 400px;
       height: 300px;
-      background-color: #000;
       margin-top: 20px;
+      overflow: hidden;
+      position: relative;
+      background-color: #000;
     }
-    #status {
+    #result {
       margin-top: 20px;
       font-size: 18px;
       font-weight: bold;
@@ -31,28 +34,74 @@
 </head>
 <body>
 
-<h1>Basic Camera Feed Test</h1>
-<p>This is a test to verify if camera access works.</p>
+<h1>QR Code Ticket Validator</h1>
+<p>Scan the QR code to validate the ticket.</p>
 
-<video id="camera-feed" autoplay playsinline></video>
-<div id="status">Initializing camera...</div>
+<div id="qr-reader"></div>
+<div id="result">Initializing camera...</div>
 
 <script>
-  async function initializeCamera() {
-    const videoElement = document.getElementById('camera-feed');
-    const statusElement = document.getElementById('status');
+  // Replace this with your Google Apps Script Web App URL
+  const GOOGLE_APPS_SCRIPT_URL = 'https://script.google.com/macros/s/YOUR_DEPLOYMENT_ID/exec';
 
+  // Function to extract ticket number from QR code content
+  function extractTicketNumber(decodedText) {
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } });
-      videoElement.srcObject = stream;
-      statusElement.innerText = "Camera initialized. Displaying feed.";
+      const url = new URL(decodedText);
+      const ticketNumberParam = url.searchParams.get("ticketNumber");
+      return ticketNumberParam ? ticketNumberParam : decodedText; // URL with param or plain ticket number
     } catch (error) {
-      console.error("Camera initialization error:", error);
-      statusElement.innerText = "Error: Unable to access camera. Check permissions and reload the page.";
+      return decodedText; // If not a URL, return text directly as ticket number
     }
   }
 
-  window.addEventListener("load", initializeCamera);
+  // QR code scanning success function
+  function onScanSuccess(decodedText) {
+    document.getElementById("result").innerText = `Scanned: ${decodedText}`;
+    const ticketNumber = extractTicketNumber(decodedText);
+
+    if (!ticketNumber) {
+      document.getElementById("result").innerText = "Invalid QR code format. No ticket number found.";
+      return;
+    }
+
+    // Construct validation URL with the ticket number
+    const validationUrl = `${GOOGLE_APPS_SCRIPT_URL}?ticketNumber=${encodeURIComponent(ticketNumber)}`;
+
+    // Send validation request
+    fetch(validationUrl)
+      .then(response => response.text())
+      .then(data => {
+        document.getElementById("result").innerText = `Validation Result: ${data}`;
+      })
+      .catch(error => {
+        console.error("Validation error:", error);
+        document.getElementById("result").innerText = "Error validating ticket";
+      });
+  }
+
+  // QR code scanning failure function
+  function onScanFailure(error) {
+    console.warn(`QR Code scan error: ${error}`);
+  }
+
+  // Initialize camera with long lens (environment-facing) and cropped field of view
+  function initializeScanner() {
+    const html5QrCode = new Html5Qrcode("qr-reader");
+
+    // Start scanning using back camera with cropped FOV
+    html5QrCode.start(
+      { facingMode: { exact: "environment" } }, // Try to access long lens/back camera
+      { fps: 10, qrbox: { width: 250, height: 250 } }, // Cropped box to enhance QR detection
+      onScanSuccess,
+      onScanFailure
+    ).catch(err => {
+      console.error("Camera initialization error:", err);
+      document.getElementById("result").innerText = "Error: Unable to access camera. Check permissions and reload the page.";
+    });
+  }
+
+  window.addEventListener("load", initializeScanner);
 </script>
 
 </body>
