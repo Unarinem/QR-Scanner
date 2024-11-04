@@ -3,8 +3,8 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>QR Code Ticket Validator</title>
-  <script src="https://unpkg.com/html5-qrcode/minified/html5-qrcode.min.js"></script>
+  <title>QR Code Ticket Validator - Instascan</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/instascan/1.0.0/instascan.min.js"></script>
   <style>
     body {
       font-family: Arial, sans-serif;
@@ -16,10 +16,10 @@
       margin: 0;
       text-align: center;
     }
-    #qr-reader {
+    #preview {
       width: 100%;
       max-width: 400px;
-      height: 300px;
+      height: auto;
       background-color: #000;
       margin-top: 20px;
     }
@@ -35,32 +35,48 @@
 <h1>QR Code Ticket Validator</h1>
 <p>Scan the QR code to validate the ticket.</p>
 
-<div id="qr-reader">Camera feed will appear here</div>
-<div id="result">Initializing camera...</div>
+<!-- Instascan camera preview -->
+<video id="preview"></video>
+<div id="result">Waiting for scan...</div>
 
 <script>
-  // Directly initialize the Html5Qrcode camera to test camera feed
-  function initializeCamera() {
-    const qrCodeReader = new Html5Qrcode("qr-reader");
+  // Google Apps Script URL
+  const GOOGLE_APPS_SCRIPT_URL = 'https://script.google.com/macros/s/YOUR_DEPLOYMENT_ID/exec';
 
-    qrCodeReader.start(
-      { facingMode: "environment" },  // Use back camera if available
-      { fps: 10, qrbox: { width: 250, height: 250 } },
-      decodedText => {
-        document.getElementById("result").innerText = `Scanned: ${decodedText}`;
-      },
-      errorMessage => {
-        console.warn(`QR Code scan error: ${errorMessage}`);
-        document.getElementById("result").innerText = `Scan error: ${errorMessage}`;
+  function onScanSuccess(content) {
+    document.getElementById("result").innerText = `Scanned: ${content}`;
+
+    const validationUrl = `${GOOGLE_APPS_SCRIPT_URL}?ticketNumber=${encodeURIComponent(content)}`;
+
+    fetch(validationUrl)
+      .then(response => response.text())
+      .then(data => {
+        document.getElementById("result").innerText = `Validation Result: ${data}`;
+      })
+      .catch(error => {
+        console.error("Error:", error);
+        document.getElementById("result").innerText = "Error validating ticket";
+      });
+  }
+
+  function initializeInstascan() {
+    const scanner = new Instascan.Scanner({ video: document.getElementById('preview') });
+    scanner.addListener('scan', onScanSuccess);
+
+    Instascan.Camera.getCameras().then(function (cameras) {
+      if (cameras.length > 0) {
+        scanner.start(cameras[0]);  // Starts with the first camera
+        document.getElementById("result").innerText = "Camera initialized. Ready to scan.";
+      } else {
+        document.getElementById("result").innerText = "No cameras found. Please check device settings.";
       }
-    ).catch(err => {
-      console.error("Camera initialization failed:", err);
-      document.getElementById("result").innerText = "Error: Unable to access camera. Check permissions and reload the page.";
+    }).catch(function (e) {
+      console.error(e);
+      document.getElementById("result").innerText = "Error accessing camera. Check permissions.";
     });
   }
 
-  // Start camera on page load
-  window.addEventListener("load", initializeCamera);
+  window.addEventListener("load", initializeInstascan);
 </script>
 
 </body>
