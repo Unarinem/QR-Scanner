@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>QR Code Ticket Validator</title>
+  <title>QR Code Ticket Validator - Camera Test</title>
   <script src="https://unpkg.com/html5-qrcode/minified/html5-qrcode.min.js"></script>
   <style>
     body {
@@ -33,54 +33,20 @@
 </head>
 <body>
 
-<h1>QR Code Ticket Validator</h1>
+<h1>Camera Test for QR Code Ticket Validator</h1>
 <div id="qr-reader"></div>
-<div id="result">Initializing QR code scanning...</div>
+<div id="result">Initializing camera...</div>
 
 <script>
-  const GOOGLE_APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxL9RcH0b-6QhCgGpHEfH9fQ7TYrXJf6TJKrSEiSeS5UB3A4kMRQJKIW7uDWxcXmtAu/exec';
-
-  function extractTicketNumber(decodedText) {
-    try {
-      const url = new URL(decodedText);
-      return url.searchParams.get("ticketNumber") || decodedText;
-    } catch {
-      return decodedText;
-    }
-  }
-
-  async function onScanSuccess(decodedText) {
-    const ticketNumber = extractTicketNumber(decodedText);
-    document.getElementById("result").innerText = `Scanned: ${ticketNumber}`;
-
-    const validationUrl = `${GOOGLE_APPS_SCRIPT_URL}?ticketNumber=${encodeURIComponent(ticketNumber)}`;
-    try {
-      const response = await fetch(validationUrl);
-      const result = await response.text();
-      document.getElementById("result").innerText = `Validation Result: ${result}`;
-    } catch (error) {
-      console.error("Validation error:", error);
-      document.getElementById("result").innerText = "Error validating ticket";
-    }
-  }
-
-  function onScanFailure(error) {
-    console.warn("Scanning attempt with no result:", error);
-    document.getElementById("result").innerText = "Scanning for QR code...";
-  }
-
-  function initializeScanner() {
+  function initializeCamera() {
     const html5QrCode = new Html5Qrcode("qr-reader");
 
     html5QrCode.start(
       { facingMode: "environment" },
       {
-        fps: 10,
-        qrbox: { width: 250, height: 250 },
-        rememberLastUsedCamera: true,
-      },
-      onScanSuccess,
-      onScanFailure
+        fps: 10,  // Frames per second
+        rememberLastUsedCamera: true,  // Remember camera choice
+      }
     ).then(() => {
       document.getElementById("result").innerText = "Camera initialized successfully!";
     }).catch(err => {
@@ -89,7 +55,7 @@
     });
   }
 
-  window.addEventListener('load', initializeScanner);
+  window.addEventListener('load', initializeCamera);
 </script>
 
 </body>
