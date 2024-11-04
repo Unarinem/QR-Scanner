@@ -35,54 +35,22 @@
 <h1>QR Code Ticket Validator</h1>
 <p>Scan the QR code to validate the ticket.</p>
 
-<div id="qr-reader"></div>
+<div id="qr-reader">Camera feed will appear here</div>
 <div id="result">Initializing camera...</div>
 
 <script>
-  const GOOGLE_APPS_SCRIPT_URL = 'https://script.google.com/macros/s/YOUR_DEPLOYMENT_ID/exec';
-
-  function extractTicketNumber(decodedText) {
-    try {
-      const url = new URL(decodedText);
-      const ticketNumberParam = url.searchParams.get("ticketNumber");
-      if (ticketNumberParam) return ticketNumberParam;
-    } catch (error) {
-      // Not a URL, treat as a plain ticket number
-    }
-    return decodedText;
-  }
-
-  function onScanSuccess(decodedText) {
-    document.getElementById("result").innerText = `Scanned: ${decodedText}`;
-    const ticketNumber = extractTicketNumber(decodedText);
-
-    if (!ticketNumber) {
-      document.getElementById("result").innerText = "Invalid QR code format. No ticket number found.";
-      return;
-    }
-
-    const validationUrl = `${GOOGLE_APPS_SCRIPT_URL}?ticketNumber=${encodeURIComponent(ticketNumber)}`;
-
-    fetch(validationUrl)
-      .then(response => response.text())
-      .then(data => {
-        document.getElementById("result").innerText = `Validation Result: ${data}`;
-      })
-      .catch(error => {
-        console.error("Error:", error);
-        document.getElementById("result").innerText = "Error validating ticket";
-      });
-  }
-
+  // Directly initialize the Html5Qrcode camera to test camera feed
   function initializeCamera() {
     const qrCodeReader = new Html5Qrcode("qr-reader");
 
     qrCodeReader.start(
       { facingMode: "environment" },  // Use back camera if available
-      { fps: 10, qrbox: 250 },
-      onScanSuccess,
+      { fps: 10, qrbox: { width: 250, height: 250 } },
+      decodedText => {
+        document.getElementById("result").innerText = `Scanned: ${decodedText}`;
+      },
       errorMessage => {
-        console.error(`QR Code scan error: ${errorMessage}`);
+        console.warn(`QR Code scan error: ${errorMessage}`);
         document.getElementById("result").innerText = `Scan error: ${errorMessage}`;
       }
     ).catch(err => {
