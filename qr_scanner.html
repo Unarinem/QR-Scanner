@@ -1,129 +1,20 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>QR Code Ticket Validator</title>
-  <script src="https://cdn.jsdelivr.net/npm/jsqr/dist/jsQR.js"></script>
-  <style>
-    body {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      height: 100vh;
-      margin: 0;
-      font-family: Arial, sans-serif;
-      background-color: #f0f0f0;
-    }
-    #qr-video {
-      width: 100%;
-      max-width: 400px;
-      background-color: #000;
-    }
-    #result {
-      margin-top: 20px;
-      font-size: 18px;
-      font-weight: bold;
-      color: #333;
-    }
-  </style>
-</head>
-<body>
-
-<h1>QR Code Ticket Validator</h1>
-<video id="qr-video" autoplay playsinline></video>
-<canvas id="qr-canvas" style="display: none;"></canvas>
-<div id="result">Initializing QR code scanning...</div>
-
-<script>
-  const GOOGLE_APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxL9RcH0b-6QhCgGpHEfH9fQ7TYrXJf6TJKrSEiSeS5UB3A4kMRQJKIW7uDWxcXmtAu/exec';
-  const video = document.getElementById("qr-video");
-  const canvas = document.getElementById("qr-canvas");
-  const canvasContext = canvas.getContext("2d");
-  const resultElement = document.getElementById("result");
-
-  function extractTicketNumber(decodedText) {
-    try {
-      const url = new URL(decodedText);
-      return url.searchParams.get("ticketNumber") || decodedText;
-    } catch {
-      return decodedText;
-    }
-  }
-
-  async function validateTicket(ticketNumber) {
+async function validateTicket(ticketNumber) {
     const validationUrl = `${GOOGLE_APPS_SCRIPT_URL}?ticketNumber=${encodeURIComponent(ticketNumber)}`;
-    console.log("Sending validation request to:", validationUrl); // Debugging log
+    console.log("Sending validation request to:", validationUrl);
 
     try {
       const response = await fetch(validationUrl, { method: "GET" });
-      console.log("Response status:", response.status); // Log status to check if server responded
+      console.log("Response status:", response.status);
 
       if (!response.ok) {
         throw new Error(`Server responded with status: ${response.status}`);
       }
 
-      let data;
-      try {
-        data = await response.json();  // Attempt to parse JSON if Apps Script returns JSON
-        console.log("Validation response (JSON):", data);
-      } catch (jsonError) {
-        data = await response.text();  // Fallback to plain text if JSON parse fails
-        console.log("Validation response (text):", data);
-      }
-
+      const data = await response.text();  // Read response as text
+      console.log("Validation response:", data);
       resultElement.innerText = `Validation Result: ${data}`;
     } catch (error) {
       console.error("Validation error:", error.message);
       resultElement.innerText = `Error validating ticket: ${error.message}`;
     }
   }
-
-  function startQrScanner() {
-    navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } })
-      .then(stream => {
-        video.srcObject = stream;
-        video.play();
-        resultElement.innerText = "Scanning for QR codes...";
-
-        const scanInterval = setInterval(() => {
-          if (video.readyState === video.HAVE_ENOUGH_DATA) {
-            canvas.width = video.videoWidth;
-            canvas.height = video.videoHeight;
-            canvasContext.drawImage(video, 0, 0, canvas.width, canvas.height);
-
-            const imageData = canvasContext.getImageData(0, 0, canvas.width, canvas.height);
-            const code = jsQR(imageData.data, imageData.width, imageData.height, { inversionAttempts: "dontInvert" });
-
-            if (code) {
-              const ticketNumber = extractTicketNumber(code.data);
-              resultElement.innerText = `Scanned: ${ticketNumber}`;
-              validateTicket(ticketNumber);
-
-              clearInterval(scanInterval);
-              stopVideoStream();
-            }
-          }
-        }, 500);
-      })
-      .catch(error => {
-        console.error("Error accessing camera:", error);
-        resultElement.innerText = "Unable to access camera. Check permissions.";
-      });
-  }
-
-  function stopVideoStream() {
-    const stream = video.srcObject;
-    if (stream) {
-      const tracks = stream.getTracks();
-      tracks.forEach(track => track.stop());
-      video.srcObject = null;
-    }
-  }
-
-  window.addEventListener('load', startQrScanner);
-</script>
-
-</body>
-</html>
