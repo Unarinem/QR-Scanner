@@ -29,18 +29,21 @@
       font-weight: bold;
       color: #333;
     }
+    canvas {
+      display: none;
+    }
   </style>
 </head>
 <body>
 
 <h1>QR Code Ticket Validator</h1>
 <video id="camera-preview" autoplay></video>
+<canvas id="qr-canvas" width="400" height="300"></canvas>
 <div id="result">Initializing QR code scanning...</div>
 
 <script>
   const GOOGLE_APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxL9RcH0b-6QhCgGpHEfH9fQ7TYrXJf6TJKrSEiSeS5UB3A4kMRQJKIW7uDWxcXmtAu/exec';
 
-  // Extract ticket number from decoded QR code data
   function extractTicketNumber(decodedText) {
     try {
       const url = new URL(decodedText);
@@ -50,12 +53,10 @@
     }
   }
 
-  // Handle QR code detection
   async function onScanSuccess(decodedText) {
     const ticketNumber = extractTicketNumber(decodedText);
     document.getElementById("result").innerText = `Scanned: ${ticketNumber}`;
 
-    // Validation request to Google Apps Script
     const validationUrl = `${GOOGLE_APPS_SCRIPT_URL}?ticketNumber=${encodeURIComponent(ticketNumber)}`;
     try {
       const response = await fetch(validationUrl);
@@ -69,36 +70,34 @@
 
   async function startCamera() {
     const videoElement = document.getElementById('camera-preview');
+    const canvasElement = document.getElementById('qr-canvas');
+    const context = canvasElement.getContext('2d');
+
     try {
-      // Start camera feed
       const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } });
       videoElement.srcObject = stream;
       document.getElementById("result").innerText = "Camera feed initialized successfully!";
-      startQrScanner(videoElement);
+      
+      // Start QR scanning at intervals
+      setInterval(() => {
+        context.drawImage(videoElement, 0, 0, canvasElement.width, canvasElement.height);
+        const imageData = context.getImageData(0, 0, canvasElement.width, canvasElement.height);
+
+        Html5Qrcode.scanImage(imageData, { formatsToSupport: [Html5QrcodeSupportedFormats.QR_CODE] })
+          .then(decodedText => {
+            onScanSuccess(decodedText);
+          })
+          .catch(error => {
+            console.log("No QR code detected in this frame.");
+          });
+      }, 1000); // Adjust the interval as needed
+
     } catch (error) {
       console.error("Camera initialization error:", error);
       document.getElementById("result").innerText = "Error: Unable to initialize camera. Please check permissions.";
     }
   }
 
-  function startQrScanner(videoElement) {
-    const html5QrCode = new Html5Qrcode("camera-preview");
-
-    // Scan at regular intervals without re-initializing the camera
-    const scanInterval = setInterval(async () => {
-      try {
-        const qrCodeMessage = await html5QrCode.scanFile(videoElement, true);
-        if (qrCodeMessage) {
-          clearInterval(scanInterval);  // Stop scanning once a QR code is detected
-          onScanSuccess(qrCodeMessage);
-        }
-      } catch (error) {
-        console.log("No QR code detected in this frame, continuing to scan...");
-      }
-    }, 1000);  // Adjust interval time as needed
-  }
-
-  // Initialize camera and start scanning on page load
   window.addEventListener('load', startCamera);
 </script>
 
