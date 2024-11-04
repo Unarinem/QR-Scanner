@@ -65,7 +65,7 @@
   }
 
   function onScanFailure(error) {
-    console.warn("Scanning failed:", error);
+    console.warn("Scanning attempt with no result:", error);
     document.getElementById("result").innerText = "Scanning for QR code...";
   }
 
@@ -73,16 +73,19 @@
     const html5QrCode = new Html5Qrcode("qr-reader");
 
     html5QrCode.start(
-      { facingMode: "environment" },  // Use back camera if available
+      { facingMode: "environment" },
       {
-        fps: 10,  // Scans per second
-        qrbox: { width: 250, height: 250 }  // Smaller scan area for better accuracy
+        fps: 10,
+        qrbox: { width: 250, height: 250 },
+        rememberLastUsedCamera: true,
       },
       onScanSuccess,
       onScanFailure
-    ).catch(err => {
+    ).then(() => {
+      document.getElementById("result").innerText = "Camera initialized successfully!";
+    }).catch(err => {
       console.error("Camera initialization error:", err);
-      document.getElementById("result").innerText = "Error: Unable to initialize camera. Please check permissions.";
+      document.getElementById("result").innerText = "Error: Unable to initialize camera. Please check permissions and reload.";
     });
   }
 
