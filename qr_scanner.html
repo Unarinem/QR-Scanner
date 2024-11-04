@@ -68,9 +68,9 @@
 
   function initializeQrReader() {
     const html5QrCode = new Html5Qrcode("qr-reader");
-    
+
     html5QrCode.start(
-      { facingMode: "environment" }, // Switch to "user" for front-facing camera on desktop
+      { facingMode: "environment" },
       {
         fps: 10,
         qrbox: { width: 250, height: 250 },
@@ -84,9 +84,19 @@
     })
     .catch(error => {
       console.error("Camera access error:", error);
-      document.getElementById("result").innerText = "Error: Unable to access camera. Check permissions.";
+      document.getElementById("result").innerText = `Error: Unable to access camera. ${error.message || error}`;
     });
   }
+
+  // Debugging: Check if camera permissions are allowed or not
+  navigator.permissions.query({ name: 'camera' }).then(permissionStatus => {
+    console.log('Camera permission status:', permissionStatus.state);
+    if (permissionStatus.state === 'denied') {
+      document.getElementById("result").innerText = "Camera access is denied. Please allow camera permissions in your browser settings.";
+    }
+  }).catch(error => {
+    console.error("Permissions API not supported or query failed:", error);
+  });
 
   window.addEventListener('load', initializeQrReader);
 </script>
