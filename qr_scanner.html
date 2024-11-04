@@ -17,10 +17,10 @@
       font-family: Arial, sans-serif;
       background-color: #f0f0f0;
     }
-    #camera-preview {
+    #qr-reader {
       width: 100%;
       max-width: 400px;
-      height: 300px;
+      height: 400px;
       background-color: #000;
     }
     #result {
@@ -29,16 +29,12 @@
       font-weight: bold;
       color: #333;
     }
-    canvas {
-      display: none;
-    }
   </style>
 </head>
 <body>
 
 <h1>QR Code Ticket Validator</h1>
-<video id="camera-preview" autoplay></video>
-<canvas id="qr-canvas" width="400" height="300"></canvas>
+<div id="qr-reader"></div>
 <div id="result">Initializing QR code scanning...</div>
 
 <script>
@@ -68,37 +64,29 @@
     }
   }
 
-  async function startCamera() {
-    const videoElement = document.getElementById('camera-preview');
-    const canvasElement = document.getElementById('qr-canvas');
-    const context = canvasElement.getContext('2d');
-
-    try {
-      const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } });
-      videoElement.srcObject = stream;
-      document.getElementById("result").innerText = "Camera feed initialized successfully!";
-      
-      // Start QR scanning at intervals
-      setInterval(() => {
-        context.drawImage(videoElement, 0, 0, canvasElement.width, canvasElement.height);
-        
-        Html5Qrcode.scanImage(canvasElement, { formatsToSupport: [Html5QrcodeSupportedFormats.QR_CODE] })
-          .then(decodedText => {
-            console.log("QR Code detected:", decodedText);
-            onScanSuccess(decodedText);
-          })
-          .catch(error => {
-            console.log("Scanning attempt, no QR code detected.");
-          });
-      }, 1000); // Adjust the interval as needed
-
-    } catch (error) {
-      console.error("Camera initialization error:", error);
-      document.getElementById("result").innerText = "Error: Unable to initialize camera. Please check permissions.";
-    }
+  function onScanFailure(error) {
+    console.warn("Scanning failed:", error);
+    document.getElementById("result").innerText = "Scanning for QR code...";
   }
 
-  window.addEventListener('load', startCamera);
+  function initializeScanner() {
+    const html5QrCode = new Html5Qrcode("qr-reader");
+
+    html5QrCode.start(
+      { facingMode: "environment" },  // Use back camera if available
+      {
+        fps: 10,  // Scans per second
+        qrbox: { width: 250, height: 250 }  // Smaller scan area for better accuracy
+      },
+      onScanSuccess,
+      onScanFailure
+    ).catch(err => {
+      console.error("Camera initialization error:", err);
+      document.getElementById("result").innerText = "Error: Unable to initialize camera. Please check permissions.";
+    });
+  }
+
+  window.addEventListener('load', initializeScanner);
 </script>
 
 </body>
