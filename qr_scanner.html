@@ -6,94 +6,75 @@
   <title>QR Code Ticket Validator</title>
   <script src="https://unpkg.com/html5-qrcode/minified/html5-qrcode.min.js"></script>
   <style>
-    body {
-      font-family: Arial, sans-serif;
+    body, html {
+      height: 100%;
       display: flex;
-      flex-direction: column;
       align-items: center;
       justify-content: center;
-      height: 100vh;
       margin: 0;
-      text-align: center;
+      font-family: Arial, sans-serif;
+      background-color: #000;
     }
     #qr-reader {
-      width: 100%;
-      max-width: 400px;
-      height: 400px;
-      margin-top: 20px;
+      width: 100vw;
+      height: 100vh;
       overflow: hidden;
       background-color: #000;
-      position: relative;
     }
     #result {
-      margin-top: 20px;
-      font-size: 18px;
-      font-weight: bold;
+      position: absolute;
+      bottom: 10px;
+      left: 50%;
+      transform: translateX(-50%);
+      color: #fff;
+      background-color: rgba(0, 0, 0, 0.6);
+      padding: 10px;
+      border-radius: 5px;
     }
   </style>
 </head>
 <body>
 
-<h1>QR Code Ticket Validator</h1>
-<p>Scan the QR code to validate the ticket.</p>
-
 <div id="qr-reader"></div>
 <div id="result">Initializing camera...</div>
 
 <script>
-  // Replace this with your Google Apps Script Web App URL
   const GOOGLE_APPS_SCRIPT_URL = 'https://script.google.com/macros/s/YOUR_DEPLOYMENT_ID/exec';
 
-  // Function to extract ticket number from QR code content
   function extractTicketNumber(decodedText) {
     try {
       const url = new URL(decodedText);
-      const ticketNumberParam = url.searchParams.get("ticketNumber");
-      return ticketNumberParam ? ticketNumberParam : decodedText; // URL with param or plain ticket number
-    } catch (error) {
-      return decodedText; // If not a URL, return text directly as ticket number
+      const ticketNumber = url.searchParams.get("ticketNumber");
+      return ticketNumber ? ticketNumber : decodedText;
+    } catch {
+      return decodedText;
     }
   }
 
-  // QR code scanning success function
   function onScanSuccess(decodedText) {
     document.getElementById("result").innerText = `Scanned: ${decodedText}`;
     const ticketNumber = extractTicketNumber(decodedText);
-
     if (!ticketNumber) {
-      document.getElementById("result").innerText = "Invalid QR code format. No ticket number found.";
+      document.getElementById("result").innerText = "Invalid QR code format.";
       return;
     }
 
-    // Construct validation URL with the ticket number
     const validationUrl = `${GOOGLE_APPS_SCRIPT_URL}?ticketNumber=${encodeURIComponent(ticketNumber)}`;
-
-    // Send validation request
     fetch(validationUrl)
       .then(response => response.text())
-      .then(data => {
-        document.getElementById("result").innerText = `Validation Result: ${data}`;
-      })
-      .catch(error => {
-        console.error("Validation error:", error);
-        document.getElementById("result").innerText = "Error validating ticket";
-      });
+      .then(data => document.getElementById("result").innerText = `Validation Result: ${data}`)
+      .catch(error => document.getElementById("result").innerText = "Error validating ticket");
   }
 
   function initializeScanner() {
-    const html5QrCode = new Html5Qrcode("qr-reader");
-
-    // Start scanning with the environment-facing camera, filling the entire view
-    html5QrCode.start(
+    const qrCodeScanner = new Html5Qrcode("qr-reader");
+    qrCodeScanner.start(
       { facingMode: "environment" },
-      { fps: 10, qrbox: { width: 400, height: 400 } }, // Match the size of #qr-reader
-      onScanSuccess,
-      errorMessage => {
-        console.warn(`QR Code scan error: ${errorMessage}`);
-      }
+      { fps: 10, qrbox: { width: 300, height: 300 } },
+      onScanSuccess
     ).catch(err => {
       console.error("Camera initialization error:", err);
-      document.getElementById("result").innerText = "Error: Unable to access camera. Check permissions and reload the page.";
+      document.getElementById("result").innerText = "Error: Unable to access camera.";
     });
   }
 
