@@ -3,7 +3,8 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Camera Feed Test and QR Scanning</title>
+  <title>QR Code Ticket Validator</title>
+  <script src="https://unpkg.com/html5-qrcode/minified/html5-qrcode.min.js"></script>
   <style>
     body {
       font-family: Arial, sans-serif;
@@ -15,12 +16,14 @@
       margin: 0;
       text-align: center;
     }
-    #camera-feed {
+    #qr-reader {
       width: 100%;
       max-width: 400px;
-      height: 300px;
-      background-color: #000;
+      height: 400px;
       margin-top: 20px;
+      overflow: hidden;
+      background-color: #000;
+      position: relative;
     }
     #result {
       margin-top: 20px;
@@ -32,45 +35,69 @@
 <body>
 
 <h1>QR Code Ticket Validator</h1>
-<p>Camera test: initializing camera...</p>
+<p>Scan the QR code to validate the ticket.</p>
 
-<!-- Video element for displaying camera feed -->
-<video id="camera-feed" autoplay playsinline></video>
-<div id="result">Waiting for scan...</div>
+<div id="qr-reader"></div>
+<div id="result">Initializing camera...</div>
 
 <script>
+  // Replace this with your Google Apps Script Web App URL
   const GOOGLE_APPS_SCRIPT_URL = 'https://script.google.com/macros/s/YOUR_DEPLOYMENT_ID/exec';
 
-  async function initializeCamera() {
-    const videoElement = document.getElementById('camera-feed');
-    const resultElement = document.getElementById('result');
-
+  // Function to extract ticket number from QR code content
+  function extractTicketNumber(decodedText) {
     try {
-      // Access the back camera
-      const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } });
-      videoElement.srcObject = stream;
-      resultElement.innerText = "Camera initialized. Please scan a QR code.";
-      
-      // Adding a manual scan button for flexibility in testing
-      const scanButton = document.createElement("button");
-      scanButton.innerText = "Scan QR Code";
-      scanButton.onclick = () => manualScan(videoElement);
-      document.body.appendChild(scanButton);
+      const url = new URL(decodedText);
+      const ticketNumberParam = url.searchParams.get("ticketNumber");
+      return ticketNumberParam ? ticketNumberParam : decodedText; // URL with param or plain ticket number
     } catch (error) {
-      console.error("Camera initialization error:", error);
-      resultElement.innerText = "Error: Unable to access camera. Check permissions and reload the page.";
+      return decodedText; // If not a URL, return text directly as ticket number
     }
   }
 
-  function manualScan(videoElement) {
-    // Placeholder for QR code scanning logic
-    // Since `Html5Qrcode` isn't being used here, a real QR scanning solution would be needed,
-    // but this demonstrates access to the camera feed and scanning in a controlled way
-    document.getElementById("result").innerText = "Scanning QR code...";
+  // QR code scanning success function
+  function onScanSuccess(decodedText) {
+    document.getElementById("result").innerText = `Scanned: ${decodedText}`;
+    const ticketNumber = extractTicketNumber(decodedText);
+
+    if (!ticketNumber) {
+      document.getElementById("result").innerText = "Invalid QR code format. No ticket number found.";
+      return;
+    }
+
+    // Construct validation URL with the ticket number
+    const validationUrl = `${GOOGLE_APPS_SCRIPT_URL}?ticketNumber=${encodeURIComponent(ticketNumber)}`;
+
+    // Send validation request
+    fetch(validationUrl)
+      .then(response => response.text())
+      .then(data => {
+        document.getElementById("result").innerText = `Validation Result: ${data}`;
+      })
+      .catch(error => {
+        console.error("Validation error:", error);
+        document.getElementById("result").innerText = "Error validating ticket";
+      });
   }
 
-  // Initialize camera when the page loads
-  window.addEventListener("load", initializeCamera);
+  function initializeScanner() {
+    const html5QrCode = new Html5Qrcode("qr-reader");
+
+    // Start scanning with the environment-facing camera, filling the entire view
+    html5QrCode.start(
+      { facingMode: "environment" },
+      { fps: 10, qrbox: { width: 400, height: 400 } }, // Match the size of #qr-reader
+      onScanSuccess,
+      errorMessage => {
+        console.warn(`QR Code scan error: ${errorMessage}`);
+      }
+    ).catch(err => {
+      console.error("Camera initialization error:", err);
+      document.getElementById("result").innerText = "Error: Unable to access camera. Check permissions and reload the page.";
+    });
+  }
+
+  window.addEventListener("load", initializeScanner);
 </script>
 
 </body>
