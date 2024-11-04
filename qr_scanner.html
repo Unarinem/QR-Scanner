@@ -67,23 +67,39 @@
   function initializeScanner() {
     const html5QrCode = new Html5Qrcode("qr-reader");
 
+    const cameraConfig = { facingMode: "environment" };
+    const scannerConfig = { fps: 10, qrbox: { width: 300, height: 300 } };
+
     html5QrCode.start(
-      { facingMode: "environment" },  // Try the back camera
-      { fps: 10, qrbox: { width: 300, height: 300 } },
+      cameraConfig,
+      scannerConfig,
       onScanSuccess,
       errorMessage => {
         console.warn(`QR Code scan error: ${errorMessage}`);
       }
     ).catch(err => {
+      document.getElementById("result").innerText = "Error: Unable to access camera. Please check permissions.";
       console.error("Camera initialization error:", err);
-      document.getElementById("result").innerText = "Error: Unable to access camera. Please check permissions and refresh.";
     });
   }
 
-  // Initialize camera on load, with error handling
+  function requestCameraAccess() {
+    navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } })
+      .then(stream => {
+        // Stop stream to release the camera if we get permission
+        stream.getTracks().forEach(track => track.stop());
+        initializeScanner(); // Now start the scanner
+      })
+      .catch(error => {
+        console.error("Camera permission error:", error);
+        document.getElementById("result").innerText = "Camera access denied. Please allow camera access and refresh.";
+      });
+  }
+
+  // Initialize on load
   window.addEventListener("load", () => {
     if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
-      initializeScanner();
+      requestCameraAccess();
     } else {
       document.getElementById("result").innerText = "Error: Camera access is not supported on this device.";
     }
