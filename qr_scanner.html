@@ -43,7 +43,7 @@
   // Function to extract the ticket number from the QR code content
   function extractTicketNumber(decodedText) {
     try {
-      // Attempt to treat decodedText as a URL and extract ticketNumber if present
+      // Try to treat decodedText as a URL to get ticketNumber parameter
       const url = new URL(decodedText);
       const ticketNumberParam = url.searchParams.get("ticketNumber");
 
@@ -51,10 +51,10 @@
         return ticketNumberParam;
       }
     } catch (error) {
-      // If it's not a URL, use decodedText directly as the ticket number
+      // If it's not a URL, assume decodedText directly as ticket number
     }
 
-    return decodedText; // Return decodedText as ticket number if not a URL
+    return decodedText; // Return decodedText directly if it's not a URL
   }
 
   function onScanSuccess(decodedText, decodedResult) {
@@ -89,7 +89,7 @@
     console.warn(`QR code scan error: ${error}`);
   }
 
-  // Initialize the QR code scanner
+  // Initialize the HTML5 QR code scanner
   const html5QrcodeScanner = new Html5QrcodeScanner(
     "qr-reader",
     { fps: 10, qrbox: { width: 250, height: 250 } },
