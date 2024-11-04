@@ -14,19 +14,25 @@
       justify-content: center;
       height: 100vh;
       margin: 0;
+      background-color: #f0f0f0;
     }
     #qr-reader {
-      width: 300px;
-      height: 300px;
+      width: 90vw;
+      max-width: 400px;
+      height: 90vw;
+      max-height: 400px;
       border: 1px solid #ddd;
       margin-top: 20px;
+      background-color: #fff;
     }
     #result {
-      font-size: 18px;
+      font-size: 16px;
       margin-top: 20px;
       padding: 10px;
       text-align: center;
       border-radius: 8px;
+      background-color: #ffffff;
+      box-shadow: 0px 4px 6px rgba(0, 0, 0, 0.1);
     }
     /* Feedback colors */
     #result.valid { color: green; background-color: #e0f7e0; }
@@ -41,29 +47,30 @@
 
   <script>
     function onScanSuccess(decodedText) {
+      // Display the scanned QR code content
       document.getElementById("result").innerText = "Scanned: " + decodedText;
       document.getElementById("result").className = "scanned";
     }
 
-    // Function to initialize the QR code scanner
     function initializeQRScanner() {
       const qrReader = new Html5Qrcode("qr-reader");
 
       qrReader.start(
         { facingMode: "environment" }, // Use back camera if available
-        { fps: 10, qrbox: 250 },
+        { fps: 10, qrbox: { width: 250, height: 250 } },
         onScanSuccess
       ).then(() => {
         document.getElementById("result").innerText = "Camera initialized. Ready to scan.";
       }).catch((err) => {
-        document.getElementById("result").innerText = "Error: Unable to access camera. Please check camera permissions.";
+        // Show a clear error message in case of camera access issues
+        document.getElementById("result").innerText = "Error: Unable to access camera. Please check camera permissions and try again.";
         console.error("Camera initialization error:", err);
       });
     }
 
-    // Start the QR scanner after a short delay to allow permissions prompt
+    // Start the QR scanner with a delay to allow for permissions prompt
     window.addEventListener("load", () => {
-      setTimeout(initializeQRScanner, 500); // Short delay to ensure camera permissions prompt
+      setTimeout(initializeQRScanner, 500); // Delay to allow permissions prompt
     });
   </script>
 </body>
