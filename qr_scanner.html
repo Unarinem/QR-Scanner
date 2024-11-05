@@ -54,6 +54,7 @@
 <script>
   const GOOGLE_APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzfQM8Yo2j8QxN2bf6YDuueSMPtccr9u38rhXSV_hLL0vdTnv6sJ7Uuvm3xy1gINMST/exec'; 
   const PASSWORD = 'Unarine@123';  // Password for accessing the app
+  const AUTH_KEY = 'qr_app_authenticated'; // Key for local storage to remember authentication
   const video = document.getElementById("qr-video");
   const canvas = document.getElementById("qr-canvas");
   const canvasContext = canvas.getContext("2d");
@@ -61,10 +62,24 @@
   const passwordSection = document.getElementById("password-section");
   const passwordError = document.getElementById("password-error");
 
+  // Check if the user is already authenticated
+  window.addEventListener('load', () => {
+    if (localStorage.getItem(AUTH_KEY) === 'true') {
+      // User is authenticated, start QR scanner directly
+      passwordSection.style.display = "none";
+      video.style.display = "block";
+      resultElement.style.display = "block";
+      startQrScanner();
+    }
+  });
+
   // Function to verify password
   function verifyPassword() {
     const enteredPassword = document.getElementById("password").value;
     if (enteredPassword === PASSWORD) {
+      // Save authentication status to local storage
+      localStorage.setItem(AUTH_KEY, 'true');
+      
       // Hide password section and show scanner components
       passwordSection.style.display = "none";
       video.style.display = "block";
@@ -147,4 +162,3 @@
 
 </body>
 </html>
-
