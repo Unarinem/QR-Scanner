@@ -23,9 +23,10 @@
     }
     #result {
       margin-top: 20px;
-      font-size: 18px;
+      font-size: 16px;
       font-weight: bold;
       color: #333;
+      white-space: pre-wrap; /* Preserve new lines in text */
     }
   </style>
 </head>
@@ -37,7 +38,7 @@
 <div id="result">Initializing QR code scanning...</div>
 
 <script>
-  const GOOGLE_APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbyaC93jMfgyZU4mJR74Ik-RJ29BMhsmC7GZsXX7eNioPdxg1HENxuhN05TNX368xoIq/exec'; 
+  const GOOGLE_APPS_SCRIPT_URL = 'https://script.google.com/macros/s/YOUR_SCRIPT_ID/exec'; // Replace with your Web App URL
   const video = document.getElementById("qr-video");
   const canvas = document.getElementById("qr-canvas");
   const canvasContext = canvas.getContext("2d");
@@ -59,9 +60,21 @@
       const response = await fetch(validationUrl, { method: "GET" });
       if (!response.ok) throw new Error(`Server responded with status: ${response.status}`);
       const data = await response.text();
-      resultElement.innerText = `Validation Result: ${data}`;
+
+      // Update the result display with the correct colors for Access Granted or Access Denied
+      if (data.includes("Access Granted")) {
+        resultElement.innerText = `Validation Result:\n${data}`;
+        resultElement.style.color = "green";
+      } else if (data.includes("Access Denied")) {
+        resultElement.innerText = `Validation Result:\n${data}`;
+        resultElement.style.color = "red";
+      } else {
+        resultElement.innerText = `Validation Result:\n${data}`;
+        resultElement.style.color = "#333"; // Default text color
+      }
     } catch (error) {
       resultElement.innerText = `Error validating ticket: ${error.message}`;
+      resultElement.style.color = "red";
     }
   }
 
