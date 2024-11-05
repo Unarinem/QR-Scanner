@@ -28,21 +28,53 @@
       color: #333;
       white-space: pre-wrap; /* Preserve new lines in text */
     }
+    #password-section {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 10px;
+    }
   </style>
 </head>
 <body>
 
 <h1>QR Code Ticket Validator</h1>
-<video id="qr-video" autoplay playsinline></video>
+
+<div id="password-section">
+  <label for="password">Enter Password to Access:</label>
+  <input type="password" id="password" placeholder="Enter Password">
+  <button onclick="verifyPassword()">Submit</button>
+  <p id="password-error" style="color: red; display: none;">Incorrect password. Please try again.</p>
+</div>
+
+<video id="qr-video" autoplay playsinline style="display: none;"></video>
 <canvas id="qr-canvas" style="display: none;"></canvas>
-<div id="result">Initializing QR code scanning...</div>
+<div id="result" style="display: none;">Initializing QR code scanning...</div>
 
 <script>
   const GOOGLE_APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzfQM8Yo2j8QxN2bf6YDuueSMPtccr9u38rhXSV_hLL0vdTnv6sJ7Uuvm3xy1gINMST/exec'; 
+  const PASSWORD = 'Unarine@123';  // Password for accessing the app
   const video = document.getElementById("qr-video");
   const canvas = document.getElementById("qr-canvas");
   const canvasContext = canvas.getContext("2d");
   const resultElement = document.getElementById("result");
+  const passwordSection = document.getElementById("password-section");
+  const passwordError = document.getElementById("password-error");
+
+  // Function to verify password
+  function verifyPassword() {
+    const enteredPassword = document.getElementById("password").value;
+    if (enteredPassword === PASSWORD) {
+      // Hide password section and show scanner components
+      passwordSection.style.display = "none";
+      video.style.display = "block";
+      resultElement.style.display = "block";
+      startQrScanner();
+    } else {
+      // Display error message if password is incorrect
+      passwordError.style.display = "block";
+    }
+  }
 
   function extractTicketNumber(decodedText) {
     try {
@@ -111,9 +143,8 @@
       video.srcObject = null;
     }
   }
-
-  window.addEventListener('load', startQrScanner);
 </script>
 
 </body>
 </html>
+
